@@ -6,6 +6,7 @@ import Foundation
 ///
 /// Drive with the RBG_STORETEST env var: "write" → "read" (verify) → "reset".
 enum StoreSelfTest {
+    @MainActor
     static func runIfRequested() {
         guard let mode = ProcessInfo.processInfo.environment["RBG_STORETEST"] else { return }
         let store = AppStore.shared
@@ -50,6 +51,20 @@ enum StoreSelfTest {
         case "reset":
             store.resetAll()
             print("RBG-STORETEST: reset done landedCount=\(store.landed.count) switch=\(store.filters.sliders.switch)")
+
+        case "intenttest":
+            // Phase 6: the exact dialog path the Siri intent runs, in-process.
+            store.resetAll()
+            let d1 = GrindIntentLogic.dialogText()
+            print("RBG-INTENTTEST: defaults → \"\(d1)\"")
+            store.filters.sliders.switch = 100
+            let d2 = GrindIntentLogic.dialogText()
+            let switchOK = d2.hasPrefix("Try Switch")
+            print("RBG-INTENTTEST: switch=100 → \"\(d2)\" \(switchOK ? "PASS (settings-aware)" : "FAIL")")
+            store.filters.tricks = store.filters.tricks.mapValues { _ in false }
+            let d3 = GrindIntentLogic.dialogText()
+            print("RBG-INTENTTEST: all tricks off → \"\(d3)\" \(d3.contains("No tricks are enabled") ? "PASS" : "FAIL")")
+            store.resetAll()
 
         case "seed":
             // richer fixture for eyeballing the Landed screen: a few landed
