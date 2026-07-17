@@ -17,9 +17,25 @@ struct GenerateGrindIntent: AppIntent {
     }
 }
 
-/// Repeats the last trick GenerateGrindIntent spoke — no new roll, just
-/// re-reads AppStore's cached last-Siri-result. Independent of whatever the
-/// in-app Generator screen currently shows.
+/// Forces a fresh two-grind switch-up, regardless of the app's current
+/// Single/Switch-Up/Practice/Work-On-Only mode — that mode is left
+/// untouched in the store, this is a one-off ad hoc request.
+struct SwitchUpGrindIntent: AppIntent {
+    static let title: LocalizedStringResource = "Generate a Switch-Up"
+    static let description = IntentDescription(
+        "Generates a two-grind switch-up combo using your current RB Grind settings."
+    )
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        .result(dialog: GrindIntentLogic.switchUpDialog().asIntentDialog)
+    }
+}
+
+/// Repeats the last trick GenerateGrindIntent or SwitchUpGrindIntent spoke —
+/// no new roll, just re-reads AppStore's cached last-Siri-result. Independent
+/// of whatever the in-app Generator screen currently shows.
 struct RepeatGrindIntent: AppIntent {
     static let title: LocalizedStringResource = "Repeat Last Grind"
     static let description = IntentDescription(
@@ -44,8 +60,27 @@ enum GrindIntentLogic {
 
     @MainActor
     static func generateDialog() -> Dialog {
-        let store = AppStore.shared
-        guard let result = store.generate() else {
+        dialog(forFreshResult: AppStore.shared.generate())
+    }
+
+    @MainActor
+    static func switchUpDialog() -> Dialog {
+        dialog(forFreshResult: AppStore.shared.generateSwitchUp())
+    }
+
+    @MainActor
+    static func repeatDialog() -> Dialog {
+        guard let result = AppStore.shared.lastSiriResult(), let display = result.short else {
+            return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
+        }
+        return Dialog(text: display.main)
+    }
+
+    /// Shared tail of generateDialog/switchUpDialog: validate, cache for
+    /// "repeat", speak the name.
+    @MainActor
+    private static func dialog(forFreshResult result: GenResult?) -> Dialog {
+        guard let result else {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
         if result.isEmpty {
@@ -54,15 +89,7 @@ enum GrindIntentLogic {
         guard let display = result.short, !display.main.isEmpty else {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
-        store.saveLastSiriResult(result)
-        return Dialog(text: display.main)
-    }
-
-    @MainActor
-    static func repeatDialog() -> Dialog {
-        guard let result = AppStore.shared.lastSiriResult(), let display = result.short else {
-            return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
-        }
+        AppStore.shared.saveLastSiriResult(result)
         return Dialog(text: display.main)
     }
 
@@ -91,9 +118,9 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             phrases: [
                 "\(.applicationName)",
                 "Give me a \(.applicationName)",
-                "Give me a \(.applicationName) trick",
-                "New \(.applicationName) trick",
-                "Generate a \(.applicationName) trick",
+                "Give me a \(.applicationName) grind",
+                "New \(.applicationName) grind",
+                "Generate a \(.applicationName) grind",
             ],
             shortTitle: "Generate a Grind",
             systemImageName: "bolt.fill"
@@ -107,6 +134,17 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Repeat Last Grind",
             systemImageName: "arrow.counterclockwise"
+        )
+        AppShortcut(
+            intent: SwitchUpGrindIntent(),
+            phrases: [
+                "\(.applicationName) switch up",
+                "Switch up \(.applicationName)",
+                "Give me a \(.applicationName) switch up",
+                "Generate a \(.applicationName) switch up",
+            ],
+            shortTitle: "Generate a Switch-Up",
+            systemImageName: "arrow.triangle.swap"
         )
     }
 }

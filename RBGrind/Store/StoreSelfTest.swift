@@ -84,6 +84,28 @@ enum StoreSelfTest {
             let r3 = GrindIntentLogic.repeatDialog()
             print("RBG-INTENTTEST: repeat after reset → \"\(r3.text)\" \(r3.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
+            // "Switch Up Grind" forces a chain even while the app is in Single
+            // mode, and must NOT persist that override into the app's own toggle.
+            store.resetAll()
+            store.filters.switchUp = 0
+            let su1 = GrindIntentLogic.switchUpDialog()
+            let looksLikeChain = su1.text.contains(" to ")
+            print("RBG-INTENTTEST: switch-up while app is Single → \"\(su1.text)\" \(looksLikeChain ? "PASS (chain shape)" : "FAIL")")
+            print("RBG-INTENTTEST: app's switchUp toggle untouched → \(store.filters.switchUp == 0 ? "PASS" : "FAIL (was \(store.filters.switchUp))")")
+
+            // bypasses drill mode too — Practice Mode alone would otherwise
+            // short-circuit nativeGenerate into an (empty) drill-pool replay
+            store.filters.practice = true
+            let su2 = GrindIntentLogic.switchUpDialog()
+            let bypassedDrill = su2.text.contains(" to ")
+            print("RBG-INTENTTEST: switch-up while Practice Mode is on → \"\(su2.text)\" \(bypassedDrill ? "PASS (bypasses drill)" : "FAIL")")
+            print("RBG-INTENTTEST: app's Practice Mode toggle untouched → \(store.filters.practice == true ? "PASS" : "FAIL")")
+
+            // repeat should now echo the switch-up, not the earlier single grind
+            let r4 = GrindIntentLogic.repeatDialog()
+            print("RBG-INTENTTEST: repeat after switch-up → \"\(r4.text)\" \(r4.text == su2.text ? "PASS (echoes switch-up)" : "FAIL")")
+            store.resetAll()
+
         case "seed":
             // richer fixture for eyeballing the Landed screen: a few landed
             // tiles, one working-on trick, one too-hard trick — all through

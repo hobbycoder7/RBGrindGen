@@ -74,6 +74,24 @@ struct BaseTrick: Codable, Identifiable {
 extension AppStore {
     /// Full generate flow (drill / switch-up / hideLanded / normal) via JS.
     func generate(currentSig: String? = nil, extraSkipSig: String? = nil) -> GenResult? {
+        generate(filtersJSON: filtersJSON, currentSig: currentSig, extraSkipSig: extraSkipSig)
+    }
+
+    /// Forces a fresh two-grind switch-up regardless of the app's current
+    /// mode — bypasses Practice/Work-On Only and Single without persisting
+    /// the override (the in-app Generator toggle is left exactly as it was).
+    /// Used by the "Switch Up Grind" Siri phrase.
+    func generateSwitchUp() -> GenResult? {
+        var overridden = filters
+        overridden.switchUp = 2
+        overridden.practice = false
+        overridden.workOnly = false
+        guard let data = try? JSONEncoder().encode(overridden),
+              let json = String(data: data, encoding: .utf8) else { return nil }
+        return generate(filtersJSON: json, currentSig: nil, extraSkipSig: nil)
+    }
+
+    private func generate(filtersJSON: String, currentSig: String?, extraSkipSig: String?) -> GenResult? {
         var parts = [
             "\"filters\":\(filtersJSON)",
             "\"landed\":\(landedJSON)",
