@@ -117,6 +117,17 @@ extension AppStore {
     func toggleWorking(_ result: GenResult, detailed: Bool) { mutateLists("nativeToggleWorking", result: result, detailed: detailed) }
     func skipTrick(_ result: GenResult, detailed: Bool) { mutateLists("nativeSkipTrick", result: result, detailed: detailed) }
 
+    /// One-way "mark landed" — adds if absent, never un-marks. `toggleLanded`
+    /// flips state (right for a UI button you can see the state of); a voice
+    /// command shouldn't risk un-landing something on a stray repeat, so
+    /// "Grind Landed" uses this instead.
+    @discardableResult
+    func markLandedIfNeeded(_ result: GenResult, detailed: Bool = false) -> Bool {
+        guard !isLanded(result.sig) else { return false }
+        toggleLanded(result, detailed: detailed)
+        return true
+    }
+
     func isLanded(_ sig: String?) -> Bool { sig.map { s in landed.contains { $0.sig == s } } ?? false }
     func isWorking(_ sig: String?) -> Bool { sig.map { s in working.contains { $0.sig == s } } ?? false }
 

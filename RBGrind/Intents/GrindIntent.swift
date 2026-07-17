@@ -33,6 +33,23 @@ struct SwitchUpGrindIntent: AppIntent {
     }
 }
 
+/// Marks the last Siri-spoken trick landed, then immediately speaks a new
+/// one the same way it came — a switch-up leads to another switch-up, a
+/// single to another single — so "land it, hear the next one" stays
+/// hands-free through a whole session.
+struct GrindLandedIntent: AppIntent {
+    static let title: LocalizedStringResource = "Mark Grind Landed"
+    static let description = IntentDescription(
+        "Marks your last RB Grind trick as landed, then generates a new one."
+    )
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        .result(dialog: GrindIntentLogic.landedDialog().asIntentDialog)
+    }
+}
+
 /// Repeats the last trick GenerateGrindIntent or SwitchUpGrindIntent spoke —
 /// no new roll, just re-reads AppStore's cached last-Siri-result. Independent
 /// of whatever the in-app Generator screen currently shows.
@@ -74,6 +91,20 @@ enum GrindIntentLogic {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         return Dialog(text: display.main)
+    }
+
+    /// Marks whatever was last spoken landed (one-way — never un-marks), then
+    /// generates the next one the same way: the last result's own isChain
+    /// decides single vs. switch-up, not the app's stored toggle, since the
+    /// last one may itself have come from the ad hoc "Switch Up Grind" phrase.
+    @MainActor
+    static func landedDialog() -> Dialog {
+        let store = AppStore.shared
+        guard let last = store.lastSiriResult() else {
+            return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
+        }
+        store.markLandedIfNeeded(last)
+        return last.isChain ? switchUpDialog() : generateDialog()
     }
 
     /// Shared tail of generateDialog/switchUpDialog: validate, cache for
@@ -145,6 +176,16 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Generate a Switch-Up",
             systemImageName: "arrow.triangle.swap"
+        )
+        AppShortcut(
+            intent: GrindLandedIntent(),
+            phrases: [
+                "\(.applicationName) landed",
+                "Mark \(.applicationName) landed",
+                "I landed my \(.applicationName)",
+            ],
+            shortTitle: "Mark Landed & Next",
+            systemImageName: "bookmark.fill"
         )
     }
 }

@@ -104,6 +104,41 @@ enum StoreSelfTest {
             // repeat should now echo the switch-up, not the earlier single grind
             let r4 = GrindIntentLogic.repeatDialog()
             print("RBG-INTENTTEST: repeat after switch-up → \"\(r4.text)\" \(r4.text == su2.text ? "PASS (echoes switch-up)" : "FAIL")")
+
+            // "Grind Landed": marks the last-spoken trick landed, then speaks
+            // a fresh one in the SAME mode (single→single, switch-up→switch-up)
+            store.resetAll()
+            _ = GrindIntentLogic.generateDialog()
+            let sigA = store.lastSiriResult()?.sig
+            let landed1 = GrindIntentLogic.landedDialog()
+            print("RBG-INTENTTEST: grind landed (single) → spoken=\"\(landed1.text)\"")
+            let singleMarked = store.landed.count == 1 && store.landed.first?.sig == sigA
+            print("RBG-INTENTTEST: previous single marked landed → \(singleMarked ? "PASS" : "FAIL")")
+            let sigB = store.lastSiriResult()?.sig
+            print("RBG-INTENTTEST: a new trick was generated and cached → \(sigB != nil && sigB != sigA ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: app's switchUp toggle untouched by single landed-flow → \(store.filters.switchUp == 0 ? "PASS" : "FAIL")")
+
+            _ = GrindIntentLogic.switchUpDialog()
+            let sigC = store.lastSiriResult()?.sig
+            let landed2 = GrindIntentLogic.landedDialog()
+            print("RBG-INTENTTEST: grind landed (switch-up) → spoken=\"\(landed2.text)\"")
+            let chainMarked = store.landed.contains { $0.sig == sigC && $0.isChain == true }
+            print("RBG-INTENTTEST: previous switch-up marked landed as a chain → \(chainMarked ? "PASS" : "FAIL")")
+            let nextIsAlsoChain = landed2.text.contains(" to ")
+            print("RBG-INTENTTEST: next grind after switch-up landed is also a switch-up → \(nextIsAlsoChain ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: total landed count now 2 → \(store.landed.count == 2 ? "PASS" : "FAIL (\(store.landed.count))")")
+
+            // toggle-safety: firing "landed" twice in a row (e.g. a stray Siri
+            // repeat) must never un-mark — each call always advances first
+            let sigD = store.lastSiriResult()?.sig
+            _ = GrindIntentLogic.landedDialog()
+            let stillLanded = sigD.map { s in store.landed.contains { $0.sig == s } } ?? false
+            print("RBG-INTENTTEST: repeated landed calls never un-mark (toggle-safe) → \(stillLanded ? "PASS" : "FAIL")")
+
+            store.resetAll()
+            let freshLanded = GrindIntentLogic.landedDialog()
+            print("RBG-INTENTTEST: grind landed with no prior grind → \"\(freshLanded.text)\" \(freshLanded.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
+
             store.resetAll()
 
         case "seed":
