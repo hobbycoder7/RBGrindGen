@@ -8,6 +8,18 @@ enum Screen: String, CaseIterable {
 struct RootView: View {
     @State private var store = AppStore.shared
     @State private var screen: Screen = .generator
+    @State private var progSelection: String?
+
+    init() {
+        // test-drive hooks: jump straight to a screen / preselect a tree node
+        let env = ProcessInfo.processInfo.environment
+        if let name = env["RBG_SCREEN"], let target = Screen(rawValue: name) {
+            _screen = State(initialValue: target)
+        }
+        if let sel = env["RBG_PROGSEL"] {
+            _progSelection = State(initialValue: sel)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,9 +29,12 @@ struct RootView: View {
             case .landed:
                 PlaceholderScreen(title: "Landed", note: "Phase 5")
             case .progression:
-                PlaceholderScreen(title: "Progression", note: "Phase 4")
+                ProgressionView(store: store, selection: $progSelection)
             }
-            bottomNav
+            // the progression detail footer replaces the nav while a tile is selected
+            if !(screen == .progression && progSelection != nil) {
+                bottomNav
+            }
         }
         .background(Theme.bg)
         .preferredColorScheme(.light)
