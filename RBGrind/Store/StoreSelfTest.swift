@@ -51,6 +51,35 @@ enum StoreSelfTest {
             store.resetAll()
             print("RBG-STORETEST: reset done landedCount=\(store.landed.count) switch=\(store.filters.sliders.switch)")
 
+        case "gentest":
+            // Phase 3 milestone: generation honors the store's slider values.
+            // Writes through the same store property the UI slider binds to.
+            store.resetAll()
+            var sample: [String] = []
+            for _ in 0..<10 {
+                if let r = store.generate(), let main = r.short?.main { sample.append(main) }
+            }
+            print("RBG-GENTEST: defaults sample: \(sample.prefix(4).joined(separator: " | "))")
+
+            store.filters.sliders.switch = 100
+            var allSwitch = true
+            var count = 0
+            for _ in 0..<60 {
+                guard let r = store.generate(), let main = r.short?.main else { continue }
+                count += 1
+                if !main.hasPrefix("Switch") { allSwitch = false; print("RBG-GENTEST: non-Switch result: \(main)") }
+            }
+            print("RBG-GENTEST: switch=100 over \(count) generates → \(allSwitch ? "ALL Switch — PASS" : "FAIL")")
+
+            store.filters.sliders.switch = 0
+            var noneSwitch = true
+            for _ in 0..<60 {
+                guard let r = store.generate(), let main = r.short?.main else { continue }
+                if main.hasPrefix("Switch") { noneSwitch = false }
+            }
+            print("RBG-GENTEST: switch=0 over 60 generates → \(noneSwitch ? "ZERO Switch — PASS" : "FAIL")")
+            store.resetAll()
+
         default:
             break
         }

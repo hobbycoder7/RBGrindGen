@@ -1548,3 +1548,12 @@ function nativeSelfTest() {
     .sort((a, b) => a.row - b.row || a.name.localeCompare(b.name));
   return JSON.stringify(out);
 }
+
+// base-trick list for the Tricks sheet (family-grouped, name-sorted like the web)
+function nativeBaseList() {
+  const map = (arr) => arr.map(b => ({ id: b.id, name: b.name, fam: b.fam }));
+  return JSON.stringify({ soul: map(SOUL_TRICKS), groove: map(GROOVE_TRICKS) });
+}
+
+// test-mode filters (everything cranked — exercises every naming path)
+function nativeTestFilters() { return JSON.stringify(makeInitFilters(true)); }
