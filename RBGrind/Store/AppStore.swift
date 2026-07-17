@@ -20,6 +20,7 @@ final class AppStore {
         static let working = "rbrg_working"
         static let skipped = "rbrg_skipped"
         static let progSkip = "rbrg_prog_skip"
+        static let lastSiriResult = "rbrg_last_siri_result"
     }
 
     // MARK: typed filters (persist on every change)
@@ -169,10 +170,26 @@ final class AppStore {
         }
     }
 
+    // MARK: - Siri "repeat" cache
+
+    /// The most recent trick Siri actually spoke (via GenerateGrindIntent),
+    /// cached verbatim as the engine's own JSON so RepeatGrindIntent can
+    /// re-decode and re-speak it later without generating a new one. A plain
+    /// UserDefaults string — separate from `currentResult` (in-app, never
+    /// persisted) and from the landed/working/skipped lists (JS-owned).
+    func saveLastSiriResult(_ result: GenResult) {
+        defaults.set(result.raw, forKey: Key.lastSiriResult)
+    }
+
+    func lastSiriResult() -> GenResult? {
+        guard let raw = defaults.string(forKey: Key.lastSiriResult) else { return nil }
+        return GenResult(raw: raw)
+    }
+
     // MARK: - testing support
 
     func resetAll() {
-        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip].forEach {
+        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip, Key.lastSiriResult].forEach {
             defaults.removeObject(forKey: $0)
         }
         loading = true
