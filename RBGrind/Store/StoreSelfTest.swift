@@ -51,6 +51,22 @@ enum StoreSelfTest {
             store.resetAll()
             print("RBG-STORETEST: reset done landedCount=\(store.landed.count) switch=\(store.filters.sliders.switch)")
 
+        case "seed":
+            // richer fixture for eyeballing the Landed screen: a few landed
+            // tiles, one working-on trick, one too-hard trick — all through
+            // the same JS paths the UI uses.
+            store.resetAll()
+            store.progAction("markLanded", id: "makio")
+            store.progAction("markLanded", id: "frontside")
+            store.progAction("markSpin", id: "makio", spinKey: "zero")
+            if let r = store.generate() {
+                store.toggleWorking(r, detailed: false)
+                if let r2 = store.generate(currentSig: r.sig) {
+                    store.skipTrick(r2, detailed: false)
+                }
+            }
+            print("RBG-STORETEST: seeded landed=\(store.landed.count) working=\(store.working.count) skipped=\(store.skipped.count)")
+
         case "gentest":
             // Phase 3 milestone: generation honors the store's slider values.
             // Writes through the same store property the UI slider binds to.

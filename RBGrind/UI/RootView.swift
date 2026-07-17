@@ -27,7 +27,7 @@ struct RootView: View {
             case .generator:
                 GeneratorView(store: store)
             case .landed:
-                PlaceholderScreen(title: "Landed", note: "Phase 5")
+                LandedView(store: store)
             case .progression:
                 ProgressionView(store: store, selection: $progSelection)
             }
@@ -71,20 +71,3 @@ struct RootView: View {
     }
 }
 
-struct PlaceholderScreen: View {
-    let title: String
-    let note: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.system(size: 26, weight: .bold))
-                .foregroundStyle(Theme.text)
-            Text("Coming in \(note)")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.muted)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg)
-    }
-}
