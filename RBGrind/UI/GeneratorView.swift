@@ -3,12 +3,15 @@ import SwiftUI
 struct GeneratorView: View {
     @Bindable var store: AppStore
 
-    @State private var result: GenResult?
-    @State private var previous: GenResult?
-    @State private var exitDetailed = false
     @State private var skipArmed = false
     @State private var sheetPage: Int?
     @State private var animKey = 0
+
+    // on-screen trick state lives in the store (session-only) so it survives
+    // tab switches — this view is recreated every time the tab comes back
+    private var result: GenResult? { store.currentResult }
+    private var previous: GenResult? { store.previousResult }
+    private var exitDetailed: Bool { store.exitDetailed }
 
     private var display: DisplayInfo? {
         guard let result, !result.isEmpty else { return nil }
@@ -176,7 +179,7 @@ struct GeneratorView: View {
     private var detailPill: some View {
         Button {
             skipArmed = false
-            exitDetailed.toggle()
+            store.exitDetailed.toggle()
         } label: {
             Text("Detail".uppercased())
                 .font(.system(size: 10, weight: .bold))
@@ -375,12 +378,12 @@ struct GeneratorView: View {
         let currentSig = (result?.isEmpty ?? true) ? nil : result?.sig
         guard let next = store.generate(currentSig: currentSig, extraSkipSig: extraSkipSig) else { return }
         if next.isEmpty {
-            if anyVisible { previous = result }
-            result = next
+            if anyVisible { store.previousResult = result }
+            store.currentResult = next
         } else {
-            if anyVisible { previous = result }
+            if anyVisible { store.previousResult = result }
             withAnimation(.easeOut(duration: 0.08)) {
-                result = next
+                store.currentResult = next
                 animKey += 1
             }
         }
@@ -389,8 +392,8 @@ struct GeneratorView: View {
     private func goBack() {
         guard let previous else { return }
         skipArmed = false
-        result = previous
-        self.previous = nil
+        store.currentResult = previous
+        store.previousResult = nil
         animKey += 1
     }
 

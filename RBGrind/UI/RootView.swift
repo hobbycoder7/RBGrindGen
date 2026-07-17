@@ -38,6 +38,13 @@ struct RootView: View {
         }
         .background(Theme.bg)
         .preferredColorScheme(.light)
+        .onAppear {
+            // test-drive hook: reproduce "switch away and back" headlessly
+            if ProcessInfo.processInfo.environment["RBG_TABTEST"] == "1" {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { screen = .landed }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { screen = .generator }
+            }
+        }
     }
 
     private var bottomNav: some View {

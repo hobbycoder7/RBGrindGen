@@ -41,6 +41,17 @@ final class AppStore {
     private(set) var skipped: [TrickEntry] = []
     private(set) var progSkip: [String] = []
 
+    // MARK: session-only Generator state (never persisted)
+
+    /// The trick/chain currently on screen, plus the one-step undo snapshot
+    /// and the Detail toggle. Mirrors the web App()'s trick/chain/prevView/
+    /// exitDetailed living at the root: tab switches recreate the screen
+    /// views, so this state must outlive them — but a relaunch clears it,
+    /// same as a web reload.
+    var currentResult: GenResult?
+    var previousResult: GenResult?
+    var exitDetailed = false
+
     private var loading = true
     private let defaults = UserDefaults.standard
 
