@@ -56,31 +56,33 @@ enum StoreSelfTest {
             // Phase 6: the exact dialog path the Siri intent runs, in-process.
             store.resetAll()
             let d1 = GrindIntentLogic.generateDialog()
-            print("RBG-INTENTTEST: defaults → spoken=\"\(d1.full)\" shown=\"\(d1.supporting ?? "—")\"")
-            let noTryPrefix = !d1.full.hasPrefix("Try ")
+            print("RBG-INTENTTEST: defaults → spoken=\"\(d1.text)\"")
+            let noTryPrefix = !d1.text.hasPrefix("Try ")
+            let noFeetLeak = !d1.text.contains("Trail:")
             print("RBG-INTENTTEST: spoken text has no \"Try \" prefix → \(noTryPrefix ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: spoken text has no Trail/Lead → \(noFeetLeak ? "PASS" : "FAIL")")
 
             store.filters.sliders.switch = 100
             let d2 = GrindIntentLogic.generateDialog()
-            let switchOK = d2.full.hasPrefix("Switch")
-            print("RBG-INTENTTEST: switch=100 → spoken=\"\(d2.full)\" \(switchOK ? "PASS (settings-aware)" : "FAIL")")
+            let switchOK = d2.text.hasPrefix("Switch")
+            print("RBG-INTENTTEST: switch=100 → spoken=\"\(d2.text)\" \(switchOK ? "PASS (settings-aware)" : "FAIL")")
 
             // repeat should echo the last successful generate(), not roll a new one
             let r1 = GrindIntentLogic.repeatDialog()
-            let repeatMatches = r1.full == d2.full && r1.supporting == d2.supporting
-            print("RBG-INTENTTEST: repeat → spoken=\"\(r1.full)\" \(repeatMatches ? "PASS (echoes last grind)" : "FAIL")")
+            let repeatMatches = r1.text == d2.text
+            print("RBG-INTENTTEST: repeat → spoken=\"\(r1.text)\" \(repeatMatches ? "PASS (echoes last grind)" : "FAIL")")
 
             store.filters.tricks = store.filters.tricks.mapValues { _ in false }
             let d3 = GrindIntentLogic.generateDialog()
-            print("RBG-INTENTTEST: all tricks off → \"\(d3.full)\" \(d3.full.contains("No tricks are enabled") ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: all tricks off → \"\(d3.text)\" \(d3.text.contains("No tricks are enabled") ? "PASS" : "FAIL")")
             // a failed generate must NOT clobber the repeat cache
             let r2 = GrindIntentLogic.repeatDialog()
-            let repeatSurvived = r2.full == d2.full
-            print("RBG-INTENTTEST: repeat after disabled-tricks → \"\(r2.full)\" \(repeatSurvived ? "PASS (cache untouched)" : "FAIL")")
+            let repeatSurvived = r2.text == d2.text
+            print("RBG-INTENTTEST: repeat after disabled-tricks → \"\(r2.text)\" \(repeatSurvived ? "PASS (cache untouched)" : "FAIL")")
 
             store.resetAll()
             let r3 = GrindIntentLogic.repeatDialog()
-            print("RBG-INTENTTEST: repeat after reset → \"\(r3.full)\" \(r3.full.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
+            print("RBG-INTENTTEST: repeat after reset → \"\(r3.text)\" \(r3.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
         case "seed":
             // richer fixture for eyeballing the Landed screen: a few landed

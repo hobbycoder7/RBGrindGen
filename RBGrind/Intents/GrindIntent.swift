@@ -2,8 +2,8 @@ import AppIntents
 
 /// The settings-aware Siri trigger. perform() reads the persisted filter
 /// settings (whatever is currently saved by the app — no parameters, no
-/// hardcoded defaults) and generates against them, speaking the trick name
-/// back. Foot placement is shown but not spoken (see GrindIntentLogic.Dialog).
+/// hardcoded defaults) and generates against them, speaking just the trick
+/// name back.
 struct GenerateGrindIntent: AppIntent {
     static let title: LocalizedStringResource = "Generate a Grind"
     static let description = IntentDescription(
@@ -34,56 +34,36 @@ struct RepeatGrindIntent: AppIntent {
 }
 
 /// Dialog-building split out so the exact intent path is testable in-process
-/// as plain strings (see RBG_STORETEST=intenttest) — IntentDialog itself
+/// as a plain string (see RBG_STORETEST=intenttest) — IntentDialog itself
 /// isn't inspectable, so the AppIntents type only gets built at the boundary.
 enum GrindIntentLogic {
-    /// `full` is what Siri speaks (and shows, if there's no `supporting`);
-    /// `supporting` is shown alongside but never spoken — foot placement
-    /// belongs there, not in the trick name Siri reads aloud.
     struct Dialog {
-        let full: String
-        let supporting: String?
-
-        var asIntentDialog: IntentDialog {
-            if let supporting {
-                IntentDialog(full: "\(full)", supporting: "\(supporting)")
-            } else {
-                IntentDialog(stringLiteral: full)
-            }
-        }
+        let text: String
+        var asIntentDialog: IntentDialog { IntentDialog(stringLiteral: text) }
     }
 
     @MainActor
     static func generateDialog() -> Dialog {
         let store = AppStore.shared
         guard let result = store.generate() else {
-            return Dialog(full: "Something went wrong generating a trick. Open RB Grind and try there.", supporting: nil)
+            return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
         if result.isEmpty {
-            return Dialog(full: emptyMessage(for: result.emptyKey), supporting: nil)
+            return Dialog(text: emptyMessage(for: result.emptyKey))
         }
         guard let display = result.short, !display.main.isEmpty else {
-            return Dialog(full: "Something went wrong generating a trick. Open RB Grind and try there.", supporting: nil)
+            return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
         store.saveLastSiriResult(result)
-        return Dialog(full: display.main, supporting: supportingText(isChain: result.isChain, display: display))
+        return Dialog(text: display.main)
     }
 
     @MainActor
     static func repeatDialog() -> Dialog {
         guard let result = AppStore.shared.lastSiriResult(), let display = result.short else {
-            return Dialog(full: "You haven't asked for a grind yet — say Hey Siri, Grind first.", supporting: nil)
+            return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
-        return Dialog(full: display.main, supporting: supportingText(isChain: result.isChain, display: display))
-    }
-
-    /// Trail/lead caption, matching the "Grab/Freestyle" fallback used
-    /// throughout the app's own UI (Generator detail rows, Landed list).
-    private static func supportingText(isChain: Bool, display: DisplayInfo) -> String? {
-        guard !isChain else { return nil }   // switch-up chains carry feet per-leg, not top-level
-        let trail = display.trail ?? "Grab/Freestyle"
-        let lead = display.lead ?? "Grab/Freestyle"
-        return "Trail: \(trail)  ·  Lead: \(lead)"
+        return Dialog(text: display.main)
     }
 
     private static func emptyMessage(for key: String?) -> String {
