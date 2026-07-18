@@ -292,7 +292,7 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             phrases: [
                 "Skip \(.applicationName)",
                 "\(.applicationName) skip",
-                "Too hard \(.applicationName)",
+                "\(.applicationName) too hard",
             ],
             shortTitle: "Skip (Too Hard)",
             systemImageName: "nosign"
@@ -302,7 +302,6 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             phrases: [
                 "Save \(.applicationName)",
                 "\(.applicationName) save",
-                "Working on \(.applicationName)",
             ],
             shortTitle: "Save (Working On)",
             systemImageName: "target"

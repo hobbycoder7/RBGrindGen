@@ -312,18 +312,18 @@ struct SiriCommand: Identifiable {
             phrases: ["Grind landed", "Mark Grind landed", "I landed my Grind", "Grind landon"]
         ),
         SiriCommand(
-            id: "skip",
-            icon: "nosign",
-            title: "Skip (Too Hard)",
-            summary: "Marks your last grind too hard, hiding it from future generation. If Suggest Next Trick (above) is on, also speaks a new one the same way it came.",
-            phrases: ["Skip Grind", "Grind skip", "Too hard Grind"]
-        ),
-        SiriCommand(
             id: "save",
             icon: "target",
             title: "Save (Working On)",
-            summary: "Marks your last grind working-on, so it keeps coming back up for practice. If Suggest Next Trick (above) is on, also speaks a new one the same way it came.",
-            phrases: ["Save Grind", "Grind save", "Working on Grind"]
+            summary: "Marks your last grind as working-on, so it keeps coming back up for practice.",
+            phrases: ["Save Grind", "Grind save"]
+        ),
+        SiriCommand(
+            id: "skip",
+            icon: "nosign",
+            title: "Skip (Too Hard)",
+            summary: "Marks your last grind as too hard, hiding it from future generation.",
+            phrases: ["Skip Grind","Grind too hard", "Grind skip"]
         ),
         SiriCommand(
             id: "repeat",

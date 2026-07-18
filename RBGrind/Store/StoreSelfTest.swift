@@ -224,6 +224,42 @@ enum StoreSelfTest {
 
             store.resetAll()
 
+            // Regression: a Siri result from a past session must NOT still
+            // be actionable by Repeat/Landed/Skip/Save after it goes stale —
+            // the reported bug was "opened the app, said Grind Landed,
+            // never said Grind first" landing a leftover trick from days
+            // ago. maxAge:0 simulates "already expired" without needing a
+            // fake clock — any nonzero elapsed time exceeds a 0s window.
+            _ = GrindIntentLogic.generateDialog()
+            let freshOK = store.lastSiriResult() != nil
+            let expiredNil = store.lastSiriResult(maxAge: 0) == nil
+            print("RBG-INTENTTEST: fresh Siri result is actionable → \(freshOK ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: stale Siri result (maxAge 0) reads as absent → \(expiredNil ? "PASS" : "FAIL")")
+
+            store.resetAll()
+
+            // End-to-end reproduction of the reported bug: a trick spoken
+            // long ago (2h, past the real 1h default — no maxAge override
+            // this time) must not be actionable by ANY of the four commands
+            // that read the cache, and none of them should mutate a list.
+            _ = GrindIntentLogic.generateDialog()
+            let rawResult = store.lastSiriResult()!.raw
+            let staleJSON = "{\"raw\":\(AppStore.jsonString(rawResult)),\"at\":\(Date().timeIntervalSince1970 - 7200)}"
+            UserDefaults.standard.set(staleJSON, forKey: "rbrg_last_siri_result")
+            let bugRepro = [
+                ("Grind Landed", GrindIntentLogic.landedDialog().text),
+                ("Skip Grind", GrindIntentLogic.skipDialog().text),
+                ("Save Grind", GrindIntentLogic.saveDialog().text),
+                ("Repeat Grind", GrindIntentLogic.repeatDialog().text),
+            ]
+            for (name, text) in bugRepro {
+                print("RBG-INTENTTEST: bug repro — \(name) on a 2h-stale result → \"\(text)\" \(text.contains("haven't asked") ? "PASS" : "FAIL")")
+            }
+            let nothingMutated = store.landed.isEmpty && store.working.isEmpty && store.skipped.isEmpty
+            print("RBG-INTENTTEST: bug repro — no list mutated by a stale result → \(nothingMutated ? "PASS" : "FAIL")")
+
+            store.resetAll()
+
             // Siri-only abbreviation expansion: BS→Backside, AO→Alley-oop
             let sp1 = GrindIntentLogic.spokenForm("Fakie 270 Inspin BS Royale")
             print("RBG-INTENTTEST: spokenForm BS → \"\(sp1)\" \(sp1 == "Fakie 270 Inspin Backside Royale" ? "PASS" : "FAIL")")

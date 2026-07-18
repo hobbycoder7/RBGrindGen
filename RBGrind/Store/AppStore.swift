@@ -186,18 +186,39 @@ final class AppStore {
 
     // MARK: - Siri "repeat" cache
 
-    /// The most recent trick Siri actually spoke (via GenerateGrindIntent),
-    /// cached verbatim as the engine's own JSON so RepeatGrindIntent can
-    /// re-decode and re-speak it later without generating a new one. A plain
-    /// UserDefaults string — separate from `currentResult` (in-app, never
-    /// persisted) and from the landed/working/skipped lists (JS-owned).
-    func saveLastSiriResult(_ result: GenResult) {
-        defaults.set(result.raw, forKey: Key.lastSiriResult)
+    private struct CachedSiriResult: Codable {
+        let raw: String
+        let at: Double   // Date().timeIntervalSince1970 when saved
     }
 
-    func lastSiriResult() -> GenResult? {
-        guard let raw = defaults.string(forKey: Key.lastSiriResult) else { return nil }
-        return GenResult(raw: raw)
+    /// How long a Siri-spoken result stays valid for Repeat/Landed/Skip/Save
+    /// to act on. Long enough to survive a real pause within one skate
+    /// session (tying laces, a water break) and the process-boundary
+    /// crossing between separate Siri invocations — the reason this is
+    /// UserDefaults-backed at all, not in-memory. Short enough that opening
+    /// the app after a long gap and saying "Grind Landed" without a fresh
+    /// "Grind" first doesn't silently act on whatever was last spoken hours
+    /// or days ago (the bug: a stale cache never expired).
+    static let siriResultMaxAge: TimeInterval = 3600
+
+    /// The most recent trick Siri actually spoke (via GenerateGrindIntent or
+    /// SwitchUpGrindIntent), cached verbatim as the engine's own JSON so
+    /// RepeatGrindIntent/GrindLandedIntent/SkipGrindIntent/SaveGrindIntent
+    /// can act on it without generating a new one. Separate from
+    /// `currentResult` (in-app, never persisted) and from the
+    /// landed/working/skipped lists (JS-owned).
+    func saveLastSiriResult(_ result: GenResult) {
+        let cached = CachedSiriResult(raw: result.raw, at: Date().timeIntervalSince1970)
+        guard let data = try? JSONEncoder().encode(cached),
+              let json = String(data: data, encoding: .utf8) else { return }
+        defaults.set(json, forKey: Key.lastSiriResult)
+    }
+
+    func lastSiriResult(maxAge: TimeInterval = siriResultMaxAge) -> GenResult? {
+        guard let json = defaults.string(forKey: Key.lastSiriResult),
+              let cached = try? JSONDecoder().decode(CachedSiriResult.self, from: Data(json.utf8)),
+              Date().timeIntervalSince1970 - cached.at <= maxAge else { return nil }
+        return GenResult(raw: cached.raw)
     }
 
     // MARK: - dev tools (Filters sheet → Dev section)
