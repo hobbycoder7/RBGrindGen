@@ -66,6 +66,20 @@ struct RepeatGrindIntent: AppIntent {
     }
 }
 
+/// Speaks a quick tour of the voice commands, most important first.
+struct GrindHelpIntent: AppIntent {
+    static let title: LocalizedStringResource = "RB Grind Help"
+    static let description = IntentDescription(
+        "Explains the RB Grind voice commands."
+    )
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        .result(dialog: "\(GrindIntentLogic.helpText)")
+    }
+}
+
 /// Dialog-building split out so the exact intent path is testable in-process
 /// as a plain string (see RBG_STORETEST=intenttest) — IntentDialog itself
 /// isn't inspectable, so the AppIntents type only gets built at the boundary.
@@ -143,6 +157,16 @@ enum GrindIntentLogic {
         return Dialog(text: leadIn.map { "\($0) \(spoken)" } ?? spoken)
     }
 
+    /// Spoken command tour, most important first: core generate, the
+    /// hands-free session driver, the alternate generate mode, then the
+    /// convenience repeat. Internal for intenttest.
+    static let helpText = "Here are the R B Grind voice commands. "
+        + "Say Grind to hear a random trick. "
+        + "Say Grind landed to mark it landed and hear the next one. "
+        + "Say Grind switch up for a two grind combo instead. "
+        + "And say Repeat Grind to hear the last one again. "
+        + "The full list is in the app, under Siri."
+
     private static func emptyMessage(for key: String?) -> String {
         switch key ?? "" {
         case "disabled":
@@ -206,6 +230,17 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Mark Landed & Next",
             systemImageName: "bookmark.fill"
+        )
+        AppShortcut(
+            intent: GrindHelpIntent(),
+            phrases: [
+                "\(.applicationName) help",
+                "Help with \(.applicationName)",
+                "\(.applicationName) commands",
+                "\(.applicationName) voice commands",
+            ],
+            shortTitle: "Help",
+            systemImageName: "questionmark.circle"
         )
     }
 }

@@ -180,6 +180,14 @@ enum StoreSelfTest {
             let w1 = GrindIntentLogic.generateDialog()
             print("RBG-INTENTTEST: exit wording → \"\(w1.text)\" \(w1.text == "Soul fakie out" ? "PASS (stance-out)" : "FAIL")")
 
+            // help text names every command, most important first
+            let help = GrindIntentLogic.helpText
+            let namesAll = ["Say Grind", "Grind landed", "Grind switch up", "Repeat Grind"].allSatisfy { help.contains($0) }
+            let order = [help.range(of: "Say Grind to"), help.range(of: "Grind landed"),
+                         help.range(of: "Grind switch up"), help.range(of: "Repeat Grind")].compactMap { $0?.lowerBound }
+            let ordered = order.count == 4 && zip(order, order.dropFirst()).allSatisfy { $0 < $1 }
+            print("RBG-INTENTTEST: help names all four commands in priority order → \(namesAll && ordered ? "PASS" : "FAIL")")
+
             store.resetAll()
 
         case "devtest":

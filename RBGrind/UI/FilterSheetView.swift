@@ -318,6 +318,13 @@ struct SiriCommand: Identifiable {
             summary: "Says the last grind Siri gave you again, without rolling a new one.",
             phrases: ["Repeat Grind", "Repeat Grind grind", "Repeat my last Grind"]
         ),
+        SiriCommand(
+            id: "help",
+            icon: "questionmark.circle",
+            title: "Help",
+            summary: "Siri reads this list of commands aloud — handy when you're mid-session and can't look at the screen.",
+            phrases: ["Grind help", "Help with Grind", "Grind commands", "Grind voice commands"]
+        ),
     ]
 }
 
