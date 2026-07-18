@@ -191,6 +191,7 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             intent: GrindLandedIntent(),
             phrases: [
                 "\(.applicationName) landed",
+                "\(.applicationName) landon",   // Siri often hears "landed" as "landon"
                 "Mark \(.applicationName) landed",
                 "I landed my \(.applicationName)",
             ],
