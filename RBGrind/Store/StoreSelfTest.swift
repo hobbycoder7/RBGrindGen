@@ -75,10 +75,14 @@ enum StoreSelfTest {
             store.filters.tricks = store.filters.tricks.mapValues { _ in false }
             let d3 = GrindIntentLogic.generateDialog()
             print("RBG-INTENTTEST: all tricks off → \"\(d3.text)\" \(d3.text.contains("No tricks are enabled") ? "PASS" : "FAIL")")
-            // a failed generate must NOT clobber the repeat cache
+            // An empty-pool result now mirrors onto currentResult too — same
+            // as the in-app Generator screen, which shows the "No Tricks
+            // Enabled" message rather than leaving the old trick on screen.
+            // So Repeat correctly has nothing real to echo here (matches
+            // what's actually showing, not stale pre-disable history) —
+            // this is the desync fix, not a regression.
             let r2 = GrindIntentLogic.repeatDialog()
-            let repeatSurvived = r2.text == d2.text
-            print("RBG-INTENTTEST: repeat after disabled-tricks → \"\(r2.text)\" \(repeatSurvived ? "PASS (cache untouched)" : "FAIL")")
+            print("RBG-INTENTTEST: repeat after disabled-tricks has nothing to echo → \"\(r2.text)\" \(r2.text.contains("haven't asked") ? "PASS (matches on-screen empty state)" : "FAIL")")
 
             store.resetAll()
             let r3 = GrindIntentLogic.repeatDialog()
@@ -112,12 +116,12 @@ enum StoreSelfTest {
             // to build the exact expected prefix.
             store.resetAll()
             let gen1 = GrindIntentLogic.generateDialog()
-            let sigA = store.lastSiriResult()?.sig
+            let sigA = store.currentResult?.sig
             let landed1 = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed (single) → spoken=\"\(landed1.text)\"")
             let singleMarked = store.landed.count == 1 && store.landed.first?.sig == sigA
             print("RBG-INTENTTEST: previous single marked landed → \(singleMarked ? "PASS" : "FAIL")")
-            let sigB = store.lastSiriResult()?.sig
+            let sigB = store.currentResult?.sig
             print("RBG-INTENTTEST: a new trick was generated and cached → \(sigB != nil && sigB != sigA ? "PASS" : "FAIL")")
             print("RBG-INTENTTEST: app's switchUp toggle untouched by single landed-flow → \(store.filters.switchUp == 0 ? "PASS" : "FAIL")")
             let landedLeadIn = "\(gen1.text) Landed! Next up, "
@@ -127,7 +131,7 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: repeat after landed drops name + lead-in → \"\(repeatAfterLanded.text)\" \(repeatHasNoLeadIn ? "PASS" : "FAIL")")
 
             let su0 = GrindIntentLogic.switchUpDialog()
-            let sigC = store.lastSiriResult()?.sig
+            let sigC = store.currentResult?.sig
             let landed2 = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed (switch-up) → spoken=\"\(landed2.text)\"")
             let chainMarked = store.landed.contains { $0.sig == sigC && $0.isChain == true }
@@ -139,7 +143,7 @@ enum StoreSelfTest {
 
             // toggle-safety: firing "landed" twice in a row (e.g. a stray Siri
             // repeat) must never un-mark — each call always advances first
-            let sigD = store.lastSiriResult()?.sig
+            let sigD = store.currentResult?.sig
             _ = GrindIntentLogic.landedDialog()
             let stillLanded = sigD.map { s in store.landed.contains { $0.sig == s } } ?? false
             print("RBG-INTENTTEST: repeated landed calls never un-mark (toggle-safe) → \(stillLanded ? "PASS" : "FAIL")")
@@ -152,12 +156,12 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: landedSuggestsNext defaults true → \(store.landedSuggestsNext ? "PASS" : "FAIL")")
             store.landedSuggestsNext = false
             let genOff = GrindIntentLogic.generateDialog()
-            let sigE = store.lastSiriResult()?.sig
+            let sigE = store.currentResult?.sig
             let landedOff = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: landed with suggest-next OFF → \"\(landedOff.text)\" \(landedOff.text == "\(genOff.text) Landed!" ? "PASS" : "FAIL")")
             let markedOff = store.landed.contains { $0.sig == sigE }
             print("RBG-INTENTTEST: still marks landed when OFF → \(markedOff ? "PASS" : "FAIL")")
-            let cacheUntouchedOff = store.lastSiriResult()?.sig == sigE
+            let cacheUntouchedOff = store.currentResult?.sig == sigE
             print("RBG-INTENTTEST: cache untouched when OFF (no next trick rolled) → \(cacheUntouchedOff ? "PASS" : "FAIL")")
 
             // "Skip Grind": marks too hard, then advances (settings-aware,
@@ -166,7 +170,7 @@ enum StoreSelfTest {
             // on a chain) but still advances to a fresh chain.
             store.resetAll()
             let genSkip1 = GrindIntentLogic.generateDialog()
-            let skigSigA = store.lastSiriResult()?.sig
+            let skigSigA = store.currentResult?.sig
             let skip1 = GrindIntentLogic.skipDialog()
             print("RBG-INTENTTEST: skip grind (single) → spoken=\"\(skip1.text)\"")
             let skipMarked = store.skipped.contains { $0.sig == skigSigA } && !store.landed.contains { $0.sig == skigSigA }
@@ -175,7 +179,7 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: skip dialog names the trick + lead-in → \(skip1.text.hasPrefix(skipLeadIn) ? "PASS" : "FAIL")")
 
             let suSkip = GrindIntentLogic.switchUpDialog()
-            let chainSigForSkip = store.lastSiriResult()?.sig
+            let chainSigForSkip = store.currentResult?.sig
             let skip2 = GrindIntentLogic.skipDialog()
             print("RBG-INTENTTEST: skip grind (switch-up) → spoken=\"\(skip2.text)\"")
             let chainNotSkipped = !store.skipped.contains { $0.sig == chainSigForSkip }
@@ -183,7 +187,7 @@ enum StoreSelfTest {
             let chainSkipLeadIn = "\(suSkip.text) Skipped! Next up, "
             print("RBG-INTENTTEST: names the switch-up + still advances to a new one → \(skip2.text.hasPrefix(chainSkipLeadIn) && skip2.text.contains(" to ") ? "PASS" : "FAIL")")
 
-            let skipSigRepeat = store.lastSiriResult()?.sig
+            let skipSigRepeat = store.currentResult?.sig
             _ = GrindIntentLogic.skipDialog()
             let skipStillOnce = store.skipped.filter { $0.sig == skipSigRepeat }.count <= 1
             print("RBG-INTENTTEST: repeated skip never double-adds (toggle-safe) → \(skipStillOnce ? "PASS" : "FAIL")")
@@ -201,7 +205,7 @@ enum StoreSelfTest {
             // switch-ups DO get recorded (Working On has no chain exclusion).
             store.resetAll()
             let genSave1 = GrindIntentLogic.generateDialog()
-            let saveSigA = store.lastSiriResult()?.sig
+            let saveSigA = store.currentResult?.sig
             let save1 = GrindIntentLogic.saveDialog()
             print("RBG-INTENTTEST: save grind (single) → spoken=\"\(save1.text)\"")
             let saveMarked = store.working.contains { $0.sig == saveSigA } && !store.landed.contains { $0.sig == saveSigA }
@@ -210,14 +214,14 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: save dialog names the trick + lead-in → \(save1.text.hasPrefix(saveLeadIn) ? "PASS" : "FAIL")")
 
             let suSave = GrindIntentLogic.switchUpDialog()
-            let chainSigForSave = store.lastSiriResult()?.sig
+            let chainSigForSave = store.currentResult?.sig
             let save2 = GrindIntentLogic.saveDialog()
             let chainSaved = store.working.contains { $0.sig == chainSigForSave && $0.isChain == true }
             print("RBG-INTENTTEST: switch-up save records as a chain → \(chainSaved ? "PASS" : "FAIL")")
             let chainSaveLeadIn = "\(suSave.text) Saved! Next up, "
             print("RBG-INTENTTEST: names the switch-up + still advances to a new one → \(save2.text.hasPrefix(chainSaveLeadIn) && save2.text.contains(" to ") ? "PASS" : "FAIL")")
 
-            let saveSigRepeat = store.lastSiriResult()?.sig
+            let saveSigRepeat = store.currentResult?.sig
             _ = GrindIntentLogic.saveDialog()
             let saveStillWorking = saveSigRepeat.map { s in store.working.contains { $0.sig == s } } ?? false
             print("RBG-INTENTTEST: repeated save stays marked (toggle-safe) → \(saveStillWorking ? "PASS" : "FAIL")")
@@ -233,39 +237,50 @@ enum StoreSelfTest {
 
             store.resetAll()
 
-            // Regression: a Siri result from a past session must NOT still
-            // be actionable by Repeat/Landed/Skip/Save after it goes stale —
-            // the reported bug was "opened the app, said Grind Landed,
-            // never said Grind first" landing a leftover trick from days
-            // ago. maxAge:0 simulates "already expired" without needing a
-            // fake clock — any nonzero elapsed time exceeds a 0s window.
-            _ = GrindIntentLogic.generateDialog()
-            let freshOK = store.lastSiriResult() != nil
-            let expiredNil = store.lastSiriResult(maxAge: 0) == nil
-            print("RBG-INTENTTEST: fresh Siri result is actionable → \(freshOK ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: stale Siri result (maxAge 0) reads as absent → \(expiredNil ? "PASS" : "FAIL")")
+            // currentResult now IS the Generator screen's on-screen state,
+            // shared with Siri — every tap or voice command writes the same
+            // property, so Repeat/Landed/Skip/Save always act on whatever's
+            // actually showing, and Siri's own writes update a live,
+            // already-open Generator screen the same way a tap would
+            // (both go through the same @Observable property).
+            let genShared = GrindIntentLogic.generateDialog()
+            let mirroredName = store.currentResult?.short.map { GrindIntentLogic.spokenForm($0.main) }
+            print("RBG-INTENTTEST: Siri generate mirrors into currentResult → \(mirroredName == genShared.text ? "PASS" : "FAIL")")
+            let sharedSig = store.currentResult?.sig
+            let repeatSeesShared = GrindIntentLogic.repeatDialog().text == genShared.text
+            print("RBG-INTENTTEST: repeat reads the same currentResult a tap would've set → \(repeatSeesShared ? "PASS" : "FAIL")")
+            _ = GrindIntentLogic.landedDialog()
+            let landedSharedMarked = store.landed.contains { $0.sig == sharedSig }
+            print("RBG-INTENTTEST: landed marks whatever was actually on screen → \(landedSharedMarked ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: previousResult stashed the marked trick (undo works after Siri too) → \(store.previousResult?.sig == sharedSig ? "PASS" : "FAIL")")
 
             store.resetAll()
 
-            // End-to-end reproduction of the reported bug: a trick spoken
-            // long ago (2h, past the real 1h default — no maxAge override
-            // this time) must not be actionable by ANY of the four commands
-            // that read the cache, and none of them should mutate a list.
+            // Staleness regression (the originally reported bug: "opened the
+            // app, said Grind Landed, never said Grind first" landed a
+            // leftover trick from days ago). In the current design, staleness
+            // is checked ONLY at rehydration time (AppStore.loadCurrentResult,
+            // called from init() and here directly) — once something is live
+            // in currentResult there's no further expiry, by design (the
+            // screen shouldn't blank out while you're still looking at it).
             _ = GrindIntentLogic.generateDialog()
-            let rawResult = store.lastSiriResult()!.raw
+            let freshLoad = AppStore.loadCurrentResult(from: .standard)
+            let expiredLoad = AppStore.loadCurrentResult(from: .standard, maxAge: 0)
+            print("RBG-INTENTTEST: a just-persisted result rehydrates → \(freshLoad != nil ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: maxAge:0 rejects it (staleness check works) → \(expiredLoad == nil ? "PASS" : "FAIL")")
+
+            store.resetAll()
+
+            // End-to-end bug repro: a trick persisted 2h ago (past the real
+            // 30-min default, no override) must not rehydrate — proving the
+            // actual init() path a fresh launch (or a Siri command running in
+            // a fresh process because the app wasn't open) takes is safe.
+            _ = GrindIntentLogic.generateDialog()
+            let rawResult = store.currentResult!.raw
             let staleJSON = "{\"raw\":\(AppStore.jsonString(rawResult)),\"at\":\(Date().timeIntervalSince1970 - 7200)}"
-            UserDefaults.standard.set(staleJSON, forKey: "rbrg_last_siri_result")
-            let bugRepro = [
-                ("Grind Landed", GrindIntentLogic.landedDialog().text),
-                ("Skip Grind", GrindIntentLogic.skipDialog().text),
-                ("Save Grind", GrindIntentLogic.saveDialog().text),
-                ("Repeat Grind", GrindIntentLogic.repeatDialog().text),
-            ]
-            for (name, text) in bugRepro {
-                print("RBG-INTENTTEST: bug repro — \(name) on a 2h-stale result → \"\(text)\" \(text.contains("haven't asked") ? "PASS" : "FAIL")")
-            }
-            let nothingMutated = store.landed.isEmpty && store.working.isEmpty && store.skipped.isEmpty
-            print("RBG-INTENTTEST: bug repro — no list mutated by a stale result → \(nothingMutated ? "PASS" : "FAIL")")
+            UserDefaults.standard.set(staleJSON, forKey: "rbrg_current_result")
+            let reproLoad = AppStore.loadCurrentResult(from: .standard)
+            print("RBG-INTENTTEST: bug repro — 2h-stale persisted result does not rehydrate → \(reproLoad == nil ? "PASS" : "FAIL")")
 
             store.resetAll()
 
@@ -388,6 +403,14 @@ enum StoreSelfTest {
             store.resetAll()
             let seeded = GrindIntentLogic.generateDialog()
             print("RBG-SIRISEED: spoken=\"\(seeded.text)\"")
+
+        case "repeatcheck":
+            // Reads whatever's ACTUALLY persisted from a prior real launch —
+            // deliberately no resetAll() before or after. Used to prove the
+            // desync fix: tap Generate in the real GeneratorView UI (via
+            // RBG_AUTOGEN in a separate launch), then confirm here, in a
+            // fresh process, that Siri's Repeat echoes the exact same trick.
+            print("RBG-REPEATCHECK: \(GrindIntentLogic.repeatDialog().text)")
 
         default:
             break

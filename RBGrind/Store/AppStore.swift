@@ -20,7 +20,7 @@ final class AppStore {
         static let working = "rbrg_working"
         static let skipped = "rbrg_skipped"
         static let progSkip = "rbrg_prog_skip"
-        static let lastSiriResult = "rbrg_last_siri_result"
+        static let currentResult = "rbrg_current_result"
         static let landedSuggestsNext = "rbrg_landed_suggests_next"
     }
 
@@ -53,14 +53,24 @@ final class AppStore {
     private(set) var skipped: [TrickEntry] = []
     private(set) var progSkip: [String] = []
 
-    // MARK: session-only Generator state (never persisted)
+    // MARK: - current trick (shared by the Generator screen AND every Siri
+    // command — Repeat/Landed/Skip/Save all act on this, and any of
+    // Generate/Switch Up/Landed/Skip/Save writes it, from either surface)
 
-    /// The trick/chain currently on screen, plus the one-step undo snapshot
-    /// and the Detail toggle. Mirrors the web App()'s trick/chain/prevView/
-    /// exitDetailed living at the root: tab switches recreate the screen
-    /// views, so this state must outlive them — but a relaunch clears it,
-    /// same as a web reload.
-    var currentResult: GenResult?
+    /// The trick/chain currently shown on the Generator screen. Persisted
+    /// with a timestamp (see loadCurrentResult) so a Siri command — which
+    /// may run in a separate process when the app isn't foregrounded — and
+    /// the next app launch both pick up whatever was generated most
+    /// recently, regardless of whether a tap or a voice command produced
+    /// it. If the app is already running when Siri fires, this same
+    /// @Observable mutation updates the live Generator screen directly.
+    var currentResult: GenResult? {
+        didSet { if !loading { persistCurrentResult() } }
+    }
+
+    /// One-step undo snapshot for the Generator's back arrow. Session-only —
+    /// intentionally NOT persisted; "go back" isn't a meaningful concept
+    /// across a relaunch or a separate Siri process.
     var previousResult: GenResult?
     var exitDetailed = false
 
@@ -83,10 +93,11 @@ final class AppStore {
         setWorking(defaults.string(forKey: Key.working) ?? "[]", persist: false)
         setSkipped(defaults.string(forKey: Key.skipped) ?? "[]", persist: false)
         setProgSkip(defaults.string(forKey: Key.progSkip) ?? "[]", persist: false)
-        // opening the app after Siri generated something shows that trick,
-        // not a blank screen — same 1h freshness rule as Repeat/Landed/Skip/
-        // Save, so a same-session Siri trick appears but a stale one doesn't
-        currentResult = lastSiriResult()
+        // rehydrate whatever trick was last shown — by either the
+        // Generator's own Generate button or a Siri command — so the app
+        // picks up exactly where it left off, whichever surface drove it.
+        // Freshness-gated so a trick from hours/days ago doesn't resurface.
+        currentResult = Self.loadCurrentResult(from: defaults)
         loading = false
     }
 
@@ -188,40 +199,42 @@ final class AppStore {
         }
     }
 
-    // MARK: - Siri "repeat" cache
+    // MARK: - current-trick persistence
 
-    private struct CachedSiriResult: Codable {
+    private struct CachedResult: Codable {
         let raw: String
         let at: Double   // Date().timeIntervalSince1970 when saved
     }
 
-    /// How long a Siri-spoken result stays valid for Repeat/Landed/Skip/Save
-    /// to act on. Long enough to survive a real pause within one skate
-    /// session (tying laces, a water break) and the process-boundary
-    /// crossing between separate Siri invocations — the reason this is
-    /// UserDefaults-backed at all, not in-memory. Short enough that opening
-    /// the app after a long gap and saying "Grind Landed" without a fresh
-    /// "Grind" first doesn't silently act on whatever was last spoken hours
-    /// or days ago (the bug: a stale cache never expired).
+    /// How long a persisted trick stays valid to rehydrate into
+    /// `currentResult` — checked ONLY when loading from disk (app launch,
+    /// or a Siri command running in a fresh process because the app wasn't
+    /// open). Once live in memory there's no further expiry; the screen
+    /// just shows whatever it shows, same as any other on-screen state.
+    /// Long enough to survive a real pause within one skate session (tying
+    /// laces, a water break); short enough that reopening the app — or
+    /// asking Siri — after a long gap doesn't resurface a trick from hours
+    /// or days ago (the original bug: a stale cache never expired).
     /// 3600 / 2 = 30 minutes.
-    static let siriResultMaxAge: TimeInterval = 3600 / 2
+    static let currentResultMaxAge: TimeInterval = 3600 / 2
 
-    /// The most recent trick Siri actually spoke (via GenerateGrindIntent or
-    /// SwitchUpGrindIntent), cached verbatim as the engine's own JSON so
-    /// RepeatGrindIntent/GrindLandedIntent/SkipGrindIntent/SaveGrindIntent
-    /// can act on it without generating a new one. Separate from
-    /// `currentResult` (in-app, never persisted) and from the
-    /// landed/working/skipped lists (JS-owned).
-    func saveLastSiriResult(_ result: GenResult) {
-        let cached = CachedSiriResult(raw: result.raw, at: Date().timeIntervalSince1970)
+    private func persistCurrentResult() {
+        guard let result = currentResult else {
+            defaults.removeObject(forKey: Key.currentResult)
+            return
+        }
+        let cached = CachedResult(raw: result.raw, at: Date().timeIntervalSince1970)
         guard let data = try? JSONEncoder().encode(cached),
               let json = String(data: data, encoding: .utf8) else { return }
-        defaults.set(json, forKey: Key.lastSiriResult)
+        defaults.set(json, forKey: Key.currentResult)
     }
 
-    func lastSiriResult(maxAge: TimeInterval = siriResultMaxAge) -> GenResult? {
-        guard let json = defaults.string(forKey: Key.lastSiriResult),
-              let cached = try? JSONDecoder().decode(CachedSiriResult.self, from: Data(json.utf8)),
+    /// Static (not tied to the singleton) so both `init()` and the
+    /// staleness unit test can call it directly against a real
+    /// `UserDefaults` without needing a fresh process.
+    static func loadCurrentResult(from defaults: UserDefaults, maxAge: TimeInterval = currentResultMaxAge) -> GenResult? {
+        guard let json = defaults.string(forKey: Key.currentResult),
+              let cached = try? JSONDecoder().decode(CachedResult.self, from: Data(json.utf8)),
               Date().timeIntervalSince1970 - cached.at <= maxAge else { return nil }
         return GenResult(raw: cached.raw)
     }
@@ -254,7 +267,7 @@ final class AppStore {
     // MARK: - testing support
 
     func resetAll() {
-        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip, Key.lastSiriResult, Key.landedSuggestsNext].forEach {
+        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip, Key.currentResult, Key.landedSuggestsNext].forEach {
             defaults.removeObject(forKey: $0)
         }
         loading = true
@@ -267,6 +280,8 @@ final class AppStore {
         setWorking("[]", persist: false)
         setSkipped("[]", persist: false)
         setProgSkip("[]", persist: false)
+        currentResult = nil
+        previousResult = nil
         loading = false
     }
 }

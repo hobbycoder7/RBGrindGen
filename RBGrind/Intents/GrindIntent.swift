@@ -132,7 +132,7 @@ enum GrindIntentLogic {
 
     @MainActor
     static func repeatDialog() -> Dialog {
-        guard let result = AppStore.shared.lastSiriResult(), let display = result.short else {
+        guard let result = AppStore.shared.currentResult, let display = result.short else {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         return Dialog(text: spokenForm(display.main))
@@ -171,21 +171,21 @@ enum GrindIntentLogic {
         advanceDialog(verb: "Saved") { store, last in store.markWorkingOnIfNeeded(last) }
     }
 
-    /// Shared shape of Landed/Skip/Save: apply `mark` to whatever was last
-    /// spoken, then — if `landedSuggestsNext` is on (default) — roll and
-    /// speak the next one the same way the last came: the last result's own
-    /// isChain decides single vs. switch-up, not the app's stored toggle,
-    /// since the last one may itself have come from the ad hoc "Switch Up
-    /// Grind" phrase. Leads with the trick that was just marked — "Makio
-    /// Landed! Next up, Soul" — so it's clear which trick the confirmation
-    /// is about, not just that *something* happened. Only applies to a real
-    /// new trick — an empty-pool/error message speaks plain, no lead-in.
-    /// With the toggle off, the chain ends at the mark: just "Makio
-    /// Landed!", no new trick, cache untouched.
+    /// Shared shape of Landed/Skip/Save: apply `mark` to whatever's
+    /// currently shown, then — if `landedSuggestsNext` is on (default) —
+    /// roll and speak the next one the same way the last came: the last
+    /// result's own isChain decides single vs. switch-up, not the app's
+    /// stored toggle, since the last one may itself have come from the ad
+    /// hoc "Switch Up Grind" phrase. Leads with the trick that was just
+    /// marked — "Makio Landed! Next up, Soul" — so it's clear which trick
+    /// the confirmation is about, not just that *something* happened. Only
+    /// applies to a real new trick — an empty-pool/error message speaks
+    /// plain, no lead-in. With the toggle off, the chain ends at the mark:
+    /// just "Makio Landed!", no new trick, cache untouched.
     @MainActor
     private static func advanceDialog(verb: String, mark: (AppStore, GenResult) -> Void) -> Dialog {
         let store = AppStore.shared
-        guard let last = store.lastSiriResult() else {
+        guard let last = store.currentResult, !last.isEmpty else {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         mark(store, last)
@@ -198,20 +198,29 @@ enum GrindIntentLogic {
         return dialog(forFreshResult: nextResult, leadIn: "\(confirm)! Next up,")
     }
 
-    /// Shared tail of generateDialog/switchUpDialog/landedDialog: validate,
-    /// cache for "repeat", speak the name (optionally prefixed).
+    /// Shared tail of generateDialog/switchUpDialog/landedDialog: mirrors
+    /// the result onto `currentResult`/`previousResult` exactly like the
+    /// in-app Generate button does (GeneratorView.generateAction), so the
+    /// Generator screen and Siri never show two different tricks — then
+    /// speaks the name (optionally prefixed). Mirrors even an empty-pool
+    /// result, matching what the Generator screen itself does, so both
+    /// surfaces agree on "nothing left to generate" too.
     @MainActor
     private static func dialog(forFreshResult result: GenResult?, leadIn: String? = nil) -> Dialog {
         guard let result else {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
+        let store = AppStore.shared
+        let wasVisible = store.currentResult != nil && !(store.currentResult?.isEmpty ?? true)
+        if wasVisible { store.previousResult = store.currentResult }
+        store.currentResult = result
+
         if result.isEmpty {
             return Dialog(text: emptyMessage(for: result.emptyKey))
         }
         guard let display = result.short, !display.main.isEmpty else {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
-        AppStore.shared.saveLastSiriResult(result)
         let spoken = spokenForm(display.main)
         return Dialog(text: leadIn.map { "\($0) \(spoken)" } ?? spoken)
     }
