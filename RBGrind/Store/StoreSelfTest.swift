@@ -182,10 +182,16 @@ enum StoreSelfTest {
 
             store.zeroSliders()
             let s = store.filters.sliders
+            let sp = store.filters.spins
             let allZero = [s.switch, s.topside, s.negative, s.christ, s.antichrist, s.rough, s.tough].allSatisfy { $0 == 0 }
+            let spinsZero = [sp.inMin, sp.inMax, sp.outMin, sp.outMax, sp.fakieIn, sp.rewindOut, sp.suMin, sp.suMax, sp.suRewind].allSatisfy { $0 == 0 } && sp.truespin == false
+            // session/display toggles must survive (defaults: hideLanded on, specialFirst on)
+            let untouched = store.filters.hideLanded && store.filters.specialFirst && !store.filters.practice && !store.filters.workOnly
             let persistedFilters = UserDefaults.standard.string(forKey: "rbrg_filters") ?? ""
-            let persistedZero = persistedFilters.contains("\"switch\":0") && persistedFilters.contains("\"tough\":0")
-            print("RBG-DEVTEST: zero out → allZero=\(allZero) persisted=\(persistedZero) \(allZero && persistedZero ? "PASS" : "FAIL")")
+            let persistedZero = persistedFilters.contains("\"switch\":0") && persistedFilters.contains("\"truespin\":false")
+            print("RBG-DEVTEST: zero out → sliders=\(allZero) spins+truespin=\(spinsZero) togglesUntouched=\(untouched) persisted=\(persistedZero) \(allZero && spinsZero && untouched && persistedZero ? "PASS" : "FAIL")")
+            let zr = store.generate()
+            print("RBG-DEVTEST: still generates after zero out → \"\(zr?.short?.main ?? "nil")\" \(zr?.status == "ok" ? "PASS" : "FAIL")")
             store.resetAll()
 
         case "seed":

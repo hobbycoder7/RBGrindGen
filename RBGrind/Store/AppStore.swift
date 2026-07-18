@@ -195,11 +195,20 @@ final class AppStore {
         setLanded("[]")
     }
 
-    /// Drops all seven probability sliders to 0. Note this also gates off the
-    /// slider-gated bases (Rough → Tea Kettle, Negative → Hot Dog/Stub Soul),
-    /// same as dragging them there by hand.
+    /// Zeroes every slider and spin control: the seven probability sliders,
+    /// the In/Out/Switch-Up spin ranges, Fakie In, both Rewinds, and Truespin
+    /// off. Session toggles (Work-On Only, Practice, Hide Landed) and Special
+    /// Names First are deliberately untouched. Note the 0% Rough/Negative
+    /// sliders also gate off Tea Kettle / Hot Dog / Stub Soul, same as
+    /// dragging them there by hand; grooves still generate at their
+    /// mandatory 90° lock with a 0–0 in-range.
     func zeroSliders() {
-        filters.sliders = .init(switch: 0, topside: 0, negative: 0, christ: 0, antichrist: 0, rough: 0, tough: 0)
+        var f = filters
+        f.spins = .init(inMin: 0, inMax: 0, outMin: 0, outMax: 0,
+                        fakieIn: 0, truespin: false, rewindOut: 0,
+                        suMin: 0, suMax: 0, suRewind: 0)
+        f.sliders = .init(switch: 0, topside: 0, negative: 0, christ: 0, antichrist: 0, rough: 0, tough: 0)
+        filters = f
     }
 
     // MARK: - testing support
