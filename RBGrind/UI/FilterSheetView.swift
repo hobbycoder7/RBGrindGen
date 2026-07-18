@@ -246,10 +246,10 @@ struct FilterSheetView: View {
 
     private var siriPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("These work hands-free, with the app closed — settings-aware ones (Grind, Switch Up, Grind Landed) always use whatever's set in Filters and Tricks right now.")
+            (Text("Say \u{201C}Hey Siri\u{201D} before any phrase below").fontWeight(.bold).foregroundStyle(Theme.text)
+             + Text(" — they work hands-free, with the app closed. Settings-aware ones (Grind, Switch Up, Grind Landed) always use whatever's set in Filters and Tricks right now.").foregroundStyle(Theme.muted))
                 .font(.system(size: 12.5))
                 .lineSpacing(3)
-                .foregroundStyle(Theme.muted)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 20)
 
@@ -283,7 +283,7 @@ struct SiriCommand: Identifiable {
             icon: "bolt.fill",
             title: "Generate a Grind",
             summary: "Generates a trick using whatever's set in Filters and Tricks right now.",
-            phrases: ["Hey Siri, Grind", "Give me a Grind", "Give me a Grind trick", "New Grind trick", "Generate a Grind trick"]
+            phrases: ["Grind", "Give me a Grind", "Give me a Grind trick", "New Grind trick", "Generate a Grind trick"]
         ),
         SiriCommand(
             id: "switchup",

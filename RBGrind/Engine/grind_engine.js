@@ -1264,17 +1264,19 @@ function __abbrevTrue(s) {
   return s.replace(/\bTrue\b/g, 'Tru');
 }
 
+function __shortForm(s) { return __abbrevTrue(__abbrevBackside(s)); }
+
 function __displayFor(trick, chain, specialFirst, detailed) {
   if (chain) {
     const d = computeChainDisplay(chain, { specialFirst, detailed, spellBackside: true });
-    const main = __exitWording(detailed ? d.main : __abbrevTrue(__abbrevBackside(d.main)));
+    const main = __exitWording(detailed ? d.main : __shortForm(d.main));
     return { main, sub: null, lead: null, trail: null, specialName: null,
-             legs: d.legs.map(l => ({ label: l.label, name: l.name, lead: l.lead, trail: l.trail,
+             legs: d.legs.map(l => ({ label: l.label, name: detailed ? l.name : __shortForm(l.name), lead: l.lead, trail: l.trail,
                                       bog: bogLink(l.baseId, l.specialName) })) };
   }
   const d = computeDisplay(trick, { specialFirst, detailed, spellBackside: true });
-  const main = __exitWording(detailed ? d.main : __abbrevTrue(__abbrevBackside(d.main)));
-  const sub = detailed ? d.sub : __abbrevTrue(__abbrevBackside(d.sub));
+  const main = __exitWording(detailed ? d.main : __shortForm(d.main));
+  const sub = detailed ? d.sub : __shortForm(d.sub);
   return { main, sub, lead: d.lead, trail: d.trail,
            specialName: d.specialName, legs: null, bog: bogLink(trick.baseId, d.specialName) };
 }
@@ -1493,7 +1495,7 @@ function nativeProgDrawer(payloadJSON) {
   const top = nodeDrawerTop(node);
   const spins = spinsForNode(node).map(s => {
     const sig = spinSig(node.base, s, top);
-    return { key: s.key, label: s.label, name: __abbrevTrue(spinName(node.base, s, top)), sig,
+    return { key: s.key, label: s.label, name: __shortForm(spinName(node.base, s, top)), sig,
              landed: landedSigSet.has(sig), bog: spinBog(node.base, s, top) };
   });
   const mods = modsForNode(node).map(m => {
@@ -1527,7 +1529,7 @@ function nativeProgAction(payloadJSON) {
     case 'unmark':     removeShared(progSig(node)); break;
     case 'skip':       if (progCanSkip(node) && !progSkip.includes(node.id)) progSkip = [...progSkip, node.id]; break;
     case 'unskip':     progSkip = progSkip.filter(id => id !== node.id); break;
-    case 'markSpin':   { const s = findSpin(P.spinKey); if (s) { const e = spinEntry(node.base, s, top); e.display = __abbrevTrue(e.display); addShared(spinSig(node.base, s, top), e); } break; }
+    case 'markSpin':   { const s = findSpin(P.spinKey); if (s) { const e = spinEntry(node.base, s, top); e.display = __shortForm(e.display); addShared(spinSig(node.base, s, top), e); } break; }
     case 'unmarkSpin': { const s = findSpin(P.spinKey); if (s) removeShared(spinSig(node.base, s, top)); break; }
     case 'markMod':    addShared(modSig(node, P.modKey), modEntry(node, P.modKey)); break;
     case 'unmarkMod':  removeShared(modSig(node, P.modKey)); break;
