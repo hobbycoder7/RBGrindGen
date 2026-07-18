@@ -90,7 +90,17 @@ enum GrindIntentLogic {
         guard let result = AppStore.shared.lastSiriResult(), let display = result.short else {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
-        return Dialog(text: display.main)
+        return Dialog(text: spokenForm(display.main))
+    }
+
+    /// Siri-only expansion of the display abbreviations so they're spoken as
+    /// words: "BS Royale" → "Backside Royale", "AO Soul" → "Alley-oop Soul".
+    /// The Generator screen keeps showing BS/AO. Internal (not private) so the
+    /// intenttest can pin the exact behavior with fixed strings.
+    static func spokenForm(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "\\bBS\\b", with: "Backside", options: .regularExpression)
+            .replacingOccurrences(of: "\\bAO\\b", with: "Alley-oop", options: .regularExpression)
     }
 
     /// Marks whatever was last spoken landed (one-way — never un-marks), then
@@ -121,7 +131,7 @@ enum GrindIntentLogic {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
         AppStore.shared.saveLastSiriResult(result)
-        return Dialog(text: display.main)
+        return Dialog(text: spokenForm(display.main))
     }
 
     private static func emptyMessage(for key: String?) -> String {

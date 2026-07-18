@@ -139,6 +139,31 @@ enum StoreSelfTest {
             let freshLanded = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed with no prior grind → \"\(freshLanded.text)\" \(freshLanded.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
+            // Siri-only abbreviation expansion: BS→Backside, AO→Alley-oop
+            let sp1 = GrindIntentLogic.spokenForm("Fakie 270 Inspin BS Royale")
+            print("RBG-INTENTTEST: spokenForm BS → \"\(sp1)\" \(sp1 == "Fakie 270 Inspin Backside Royale" ? "PASS" : "FAIL")")
+            let sp2 = GrindIntentLogic.spokenForm("Switch AO Soul fakie out")
+            print("RBG-INTENTTEST: spokenForm AO → \"\(sp2)\" \(sp2 == "Switch Alley-oop Soul fakie out" ? "PASS" : "FAIL")")
+            let sp3 = GrindIntentLogic.spokenForm("Backside forward out")
+            print("RBG-INTENTTEST: spokenForm leaves spelled words alone → \(sp3 == "Backside forward out" ? "PASS" : "FAIL")")
+
+            // exit wording through the full store→engine→Siri path:
+            // soul-only pool, forced 0° in / 180° out ⇒ deterministic "Soul fakie out"
+            store.resetAll()
+            store.filters.tricks = store.filters.tricks.mapValues { _ in false }
+            store.filters.tricks["soul"] = true
+            store.filters.spins.inMin = 0
+            store.filters.spins.inMax = 0
+            store.filters.spins.outMin = 180
+            store.filters.spins.outMax = 180
+            store.filters.spins.fakieIn = 0
+            store.filters.spins.truespin = false
+            store.filters.spins.rewindOut = 0
+            store.filters.sliders = .init(switch: 0, topside: 0, negative: 0, christ: 0, antichrist: 0, rough: 0, tough: 0)
+            store.filters.hideLanded = false
+            let w1 = GrindIntentLogic.generateDialog()
+            print("RBG-INTENTTEST: exit wording → \"\(w1.text)\" \(w1.text == "Soul fakie out" ? "PASS (stance-out)" : "FAIL")")
+
             store.resetAll()
 
         case "seed":

@@ -1227,15 +1227,44 @@ function nativeMergeFilters(savedJSON) {
 }
 
 // ── display ──────────────────────────────────────────────────────────────────
+// Native wording tweaks (Jim), applied to the slice's output rather than the
+// slice itself so the engine stays byte-identical to the web reference:
+//
+// 1. Exit stance reads "<stance> out" instead of "to <stance>" — "Soul fakie
+//    out", not "Soul to fakie" — matching the degree/rewind exits ("270 out",
+//    "rewind out") and keeping "to" reserved for switch-up joins ("Soul to UFO
+//    fakie out"). Case-sensitive on the lowercase stance words, so the chain
+//    joiner before a capitalized grind name ("to Fakie 360 Makio") never matches.
+function __exitWording(s) {
+  if (!s) return s;
+  return s
+    .replace(/\bout to fakie\b/g, 'fakie out')       // "180 out to fakie" → "180 fakie out"
+    .replace(/\bout to forward\b/g, 'forward out')
+    .replace(/\bto fakie\b/g, 'fakie out')           // bare natural exit → "fakie out"
+    .replace(/\bto forward\b/g, 'forward out');
+}
+// 2. Short-form "Backside"→"BS" abbreviation only when it modifies a following
+//    grind name (next word capitalized: "BS Royale"). When Backside IS the
+//    grind, it stays spelled out even with entry/exit words around it
+//    ("Fakie 270 Inspin Backside", "Backside fakie out") — the slice's own
+//    abbreviator only protects the exact string "Backside".
+function __abbrevBackside(s) {
+  if (!s) return s;
+  return s.replace(/\bBackside(?= [A-Z])/g, 'BS');
+}
+
 function __displayFor(trick, chain, specialFirst, detailed) {
   if (chain) {
-    const d = computeChainDisplay(chain, { specialFirst, detailed, spellBackside: detailed });
-    return { main: d.main, sub: null, lead: null, trail: null, specialName: null,
+    const d = computeChainDisplay(chain, { specialFirst, detailed, spellBackside: true });
+    const main = __exitWording(detailed ? d.main : __abbrevBackside(d.main));
+    return { main, sub: null, lead: null, trail: null, specialName: null,
              legs: d.legs.map(l => ({ label: l.label, name: l.name, lead: l.lead, trail: l.trail,
                                       bog: bogLink(l.baseId, l.specialName) })) };
   }
-  const d = computeDisplay(trick, { specialFirst, detailed, spellBackside: detailed });
-  return { main: d.main, sub: d.sub, lead: d.lead, trail: d.trail,
+  const d = computeDisplay(trick, { specialFirst, detailed, spellBackside: true });
+  const main = __exitWording(detailed ? d.main : __abbrevBackside(d.main));
+  const sub = detailed ? d.sub : __abbrevBackside(d.sub);
+  return { main, sub, lead: d.lead, trail: d.trail,
            specialName: d.specialName, legs: null, bog: bogLink(trick.baseId, d.specialName) };
 }
 
