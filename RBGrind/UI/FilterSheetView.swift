@@ -308,7 +308,7 @@ struct SiriCommand: Identifiable {
             id: "landed",
             icon: "bookmark.fill",
             title: "Mark Landed & Next",
-            summary: "Marks your last grind landed. If Suggest Next Trick (above) is on, also speaks a new one the same way it came \u{2014} single stays single, switch-up stays switch-up.",
+            summary: "Marks your last grind landed. If Suggest Next Trick (above) is on, also speaks a new one the same way it came - single stays single, switch-up stays switch-up.",
             phrases: ["Grind landed", "Mark Grind landed", "I landed my Grind", "Grind landon"]
         ),
         SiriCommand(
