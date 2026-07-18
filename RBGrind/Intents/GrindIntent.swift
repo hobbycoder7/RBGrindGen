@@ -176,10 +176,12 @@ enum GrindIntentLogic {
     /// speak the next one the same way the last came: the last result's own
     /// isChain decides single vs. switch-up, not the app's stored toggle,
     /// since the last one may itself have come from the ad hoc "Switch Up
-    /// Grind" phrase. The "<Verb>!" lead-in only applies to a real new
-    /// trick — an empty-pool/error message speaks plain, no lead-in. With
-    /// the toggle off, the chain ends at the mark: just "<Verb>!", no new
-    /// trick, cache untouched.
+    /// Grind" phrase. Leads with the trick that was just marked — "Makio
+    /// Landed! Next up, Soul" — so it's clear which trick the confirmation
+    /// is about, not just that *something* happened. Only applies to a real
+    /// new trick — an empty-pool/error message speaks plain, no lead-in.
+    /// With the toggle off, the chain ends at the mark: just "Makio
+    /// Landed!", no new trick, cache untouched.
     @MainActor
     private static func advanceDialog(verb: String, mark: (AppStore, GenResult) -> Void) -> Dialog {
         let store = AppStore.shared
@@ -187,11 +189,13 @@ enum GrindIntentLogic {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         mark(store, last)
+        let lastName = last.short.map { spokenForm($0.main) } ?? ""
+        let confirm = lastName.isEmpty ? verb : "\(lastName) \(verb)"
         guard store.landedSuggestsNext else {
-            return Dialog(text: "\(verb)!")
+            return Dialog(text: "\(confirm)!")
         }
         let nextResult = last.isChain ? store.generateSwitchUp() : store.generate()
-        return dialog(forFreshResult: nextResult, leadIn: "\(verb)! Next up,")
+        return dialog(forFreshResult: nextResult, leadIn: "\(confirm)! Next up,")
     }
 
     /// Shared tail of generateDialog/switchUpDialog/landedDialog: validate,

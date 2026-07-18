@@ -203,7 +203,7 @@ final class AppStore {
     /// the app after a long gap and saying "Grind Landed" without a fresh
     /// "Grind" first doesn't silently act on whatever was last spoken hours
     /// or days ago (the bug: a stale cache never expired).
-    /// 3600 seconds = 1hour
+    /// 3600 / 2 = 30 minutes.
     static let siriResultMaxAge: TimeInterval = 3600 / 2
 
     /// The most recent trick Siri actually spoke (via GenerateGrindIntent or

@@ -106,9 +106,12 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: repeat after switch-up → \"\(r4.text)\" \(r4.text == su2.text ? "PASS (echoes switch-up)" : "FAIL")")
 
             // "Grind Landed": marks the last-spoken trick landed, then speaks
-            // a fresh one in the SAME mode (single→single, switch-up→switch-up)
+            // a fresh one in the SAME mode (single→single, switch-up→switch-up).
+            // Confirmation names the trick that was just landed: "Makio
+            // Landed! Next up, Soul" — capture the pre-mark spoken name (gen1)
+            // to build the exact expected prefix.
             store.resetAll()
-            _ = GrindIntentLogic.generateDialog()
+            let gen1 = GrindIntentLogic.generateDialog()
             let sigA = store.lastSiriResult()?.sig
             let landed1 = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed (single) → spoken=\"\(landed1.text)\"")
@@ -117,19 +120,21 @@ enum StoreSelfTest {
             let sigB = store.lastSiriResult()?.sig
             print("RBG-INTENTTEST: a new trick was generated and cached → \(sigB != nil && sigB != sigA ? "PASS" : "FAIL")")
             print("RBG-INTENTTEST: app's switchUp toggle untouched by single landed-flow → \(store.filters.switchUp == 0 ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: landed dialog has lead-in → \(landed1.text.hasPrefix("Landed! Next up, ") ? "PASS" : "FAIL")")
+            let landedLeadIn = "\(gen1.text) Landed! Next up, "
+            print("RBG-INTENTTEST: landed dialog names the trick + lead-in → \"\(landed1.text)\" \(landed1.text.hasPrefix(landedLeadIn) ? "PASS" : "FAIL")")
             let repeatAfterLanded = GrindIntentLogic.repeatDialog()
-            let repeatHasNoLeadIn = !repeatAfterLanded.text.hasPrefix("Landed!") && landed1.text == "Landed! Next up, " + repeatAfterLanded.text
-            print("RBG-INTENTTEST: repeat after landed drops lead-in → \"\(repeatAfterLanded.text)\" \(repeatHasNoLeadIn ? "PASS" : "FAIL")")
+            let repeatHasNoLeadIn = !repeatAfterLanded.text.contains("Landed!") && landed1.text == landedLeadIn + repeatAfterLanded.text
+            print("RBG-INTENTTEST: repeat after landed drops name + lead-in → \"\(repeatAfterLanded.text)\" \(repeatHasNoLeadIn ? "PASS" : "FAIL")")
 
-            _ = GrindIntentLogic.switchUpDialog()
+            let su0 = GrindIntentLogic.switchUpDialog()
             let sigC = store.lastSiriResult()?.sig
             let landed2 = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed (switch-up) → spoken=\"\(landed2.text)\"")
             let chainMarked = store.landed.contains { $0.sig == sigC && $0.isChain == true }
             print("RBG-INTENTTEST: previous switch-up marked landed as a chain → \(chainMarked ? "PASS" : "FAIL")")
-            let nextIsAlsoChain = landed2.text.contains(" to ")
-            print("RBG-INTENTTEST: next grind after switch-up landed is also a switch-up → \(nextIsAlsoChain ? "PASS" : "FAIL")")
+            let chainLeadIn = "\(su0.text) Landed! Next up, "
+            let nextIsAlsoChain = landed2.text.hasPrefix(chainLeadIn) && landed2.text.contains(" to ")
+            print("RBG-INTENTTEST: next grind names the switch-up + is also a switch-up → \(nextIsAlsoChain ? "PASS" : "FAIL")")
             print("RBG-INTENTTEST: total landed count now 2 → \(store.landed.count == 2 ? "PASS" : "FAIL (\(store.landed.count))")")
 
             // toggle-safety: firing "landed" twice in a row (e.g. a stray Siri
@@ -146,10 +151,10 @@ enum StoreSelfTest {
             // landedSuggestsNext toggle: defaults on, and off stops the chain
             print("RBG-INTENTTEST: landedSuggestsNext defaults true → \(store.landedSuggestsNext ? "PASS" : "FAIL")")
             store.landedSuggestsNext = false
-            _ = GrindIntentLogic.generateDialog()
+            let genOff = GrindIntentLogic.generateDialog()
             let sigE = store.lastSiriResult()?.sig
             let landedOff = GrindIntentLogic.landedDialog()
-            print("RBG-INTENTTEST: landed with suggest-next OFF → \"\(landedOff.text)\" \(landedOff.text == "Landed!" ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: landed with suggest-next OFF → \"\(landedOff.text)\" \(landedOff.text == "\(genOff.text) Landed!" ? "PASS" : "FAIL")")
             let markedOff = store.landed.contains { $0.sig == sigE }
             print("RBG-INTENTTEST: still marks landed when OFF → \(markedOff ? "PASS" : "FAIL")")
             let cacheUntouchedOff = store.lastSiriResult()?.sig == sigE
@@ -160,21 +165,23 @@ enum StoreSelfTest {
             // (matches the web app's Too-Hard button, which disables itself
             // on a chain) but still advances to a fresh chain.
             store.resetAll()
-            _ = GrindIntentLogic.generateDialog()
+            let genSkip1 = GrindIntentLogic.generateDialog()
             let skigSigA = store.lastSiriResult()?.sig
             let skip1 = GrindIntentLogic.skipDialog()
             print("RBG-INTENTTEST: skip grind (single) → spoken=\"\(skip1.text)\"")
             let skipMarked = store.skipped.contains { $0.sig == skigSigA } && !store.landed.contains { $0.sig == skigSigA }
             print("RBG-INTENTTEST: previous single marked skipped → \(skipMarked ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: skip dialog has lead-in → \(skip1.text.hasPrefix("Skipped! Next up, ") ? "PASS" : "FAIL")")
+            let skipLeadIn = "\(genSkip1.text) Skipped! Next up, "
+            print("RBG-INTENTTEST: skip dialog names the trick + lead-in → \(skip1.text.hasPrefix(skipLeadIn) ? "PASS" : "FAIL")")
 
-            _ = GrindIntentLogic.switchUpDialog()
+            let suSkip = GrindIntentLogic.switchUpDialog()
             let chainSigForSkip = store.lastSiriResult()?.sig
             let skip2 = GrindIntentLogic.skipDialog()
             print("RBG-INTENTTEST: skip grind (switch-up) → spoken=\"\(skip2.text)\"")
             let chainNotSkipped = !store.skipped.contains { $0.sig == chainSigForSkip }
             print("RBG-INTENTTEST: switch-up skip records nothing (chains aren't enumerable) → \(chainNotSkipped ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: still advances to a new switch-up → \(skip2.text.contains(" to ") ? "PASS" : "FAIL")")
+            let chainSkipLeadIn = "\(suSkip.text) Skipped! Next up, "
+            print("RBG-INTENTTEST: names the switch-up + still advances to a new one → \(skip2.text.hasPrefix(chainSkipLeadIn) && skip2.text.contains(" to ") ? "PASS" : "FAIL")")
 
             let skipSigRepeat = store.lastSiriResult()?.sig
             _ = GrindIntentLogic.skipDialog()
@@ -186,27 +193,29 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: skip with no prior grind → \"\(freshSkip.text)\" \(freshSkip.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
             store.landedSuggestsNext = false
-            _ = GrindIntentLogic.generateDialog()
+            let genSkipOff = GrindIntentLogic.generateDialog()
             let skipOff = GrindIntentLogic.skipDialog()
-            print("RBG-INTENTTEST: skip with suggest-next OFF → \"\(skipOff.text)\" \(skipOff.text == "Skipped!" ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: skip with suggest-next OFF → \"\(skipOff.text)\" \(skipOff.text == "\(genSkipOff.text) Skipped!" ? "PASS" : "FAIL")")
 
             // "Save Grind": marks working-on, then advances. Unlike Skip,
             // switch-ups DO get recorded (Working On has no chain exclusion).
             store.resetAll()
-            _ = GrindIntentLogic.generateDialog()
+            let genSave1 = GrindIntentLogic.generateDialog()
             let saveSigA = store.lastSiriResult()?.sig
             let save1 = GrindIntentLogic.saveDialog()
             print("RBG-INTENTTEST: save grind (single) → spoken=\"\(save1.text)\"")
             let saveMarked = store.working.contains { $0.sig == saveSigA } && !store.landed.contains { $0.sig == saveSigA }
             print("RBG-INTENTTEST: previous single marked working-on → \(saveMarked ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: save dialog has lead-in → \(save1.text.hasPrefix("Saved! Next up, ") ? "PASS" : "FAIL")")
+            let saveLeadIn = "\(genSave1.text) Saved! Next up, "
+            print("RBG-INTENTTEST: save dialog names the trick + lead-in → \(save1.text.hasPrefix(saveLeadIn) ? "PASS" : "FAIL")")
 
-            _ = GrindIntentLogic.switchUpDialog()
+            let suSave = GrindIntentLogic.switchUpDialog()
             let chainSigForSave = store.lastSiriResult()?.sig
             let save2 = GrindIntentLogic.saveDialog()
             let chainSaved = store.working.contains { $0.sig == chainSigForSave && $0.isChain == true }
             print("RBG-INTENTTEST: switch-up save records as a chain → \(chainSaved ? "PASS" : "FAIL")")
-            print("RBG-INTENTTEST: still advances to a new switch-up → \(save2.text.contains(" to ") ? "PASS" : "FAIL")")
+            let chainSaveLeadIn = "\(suSave.text) Saved! Next up, "
+            print("RBG-INTENTTEST: names the switch-up + still advances to a new one → \(save2.text.hasPrefix(chainSaveLeadIn) && save2.text.contains(" to ") ? "PASS" : "FAIL")")
 
             let saveSigRepeat = store.lastSiriResult()?.sig
             _ = GrindIntentLogic.saveDialog()
@@ -218,9 +227,9 @@ enum StoreSelfTest {
             print("RBG-INTENTTEST: save with no prior grind → \"\(freshSave.text)\" \(freshSave.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
             store.landedSuggestsNext = false
-            _ = GrindIntentLogic.generateDialog()
+            let genSaveOff = GrindIntentLogic.generateDialog()
             let saveOff = GrindIntentLogic.saveDialog()
-            print("RBG-INTENTTEST: save with suggest-next OFF → \"\(saveOff.text)\" \(saveOff.text == "Saved!" ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: save with suggest-next OFF → \"\(saveOff.text)\" \(saveOff.text == "\(genSaveOff.text) Saved!" ? "PASS" : "FAIL")")
 
             store.resetAll()
 
