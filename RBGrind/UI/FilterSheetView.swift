@@ -5,6 +5,7 @@ struct FilterSheetView: View {
     @Bindable var store: AppStore
     @State var page: Int
     @State private var resetArmed = false
+    @State private var clearLandedArmed = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -177,21 +178,43 @@ struct FilterSheetView: View {
                 }
             }
 
-            Spacer().frame(height: 14)
-            Button {
+            Spacer().frame(height: 18)
+            SheetLabel(text: "Dev")
+
+            devButton(
+                store.filters.testMode ? "● TEST MODE ON — tap to turn off" : "Test Mode (crank everything for naming tests)",
+                highlighted: store.filters.testMode,
+                highlightColor: Color(hex: 0x2E7D32)
+            ) {
                 store.resetFilters(testMode: !store.filters.testMode)
-            } label: {
-                Text(store.filters.testMode ? "● TEST MODE ON — tap to turn off" : "Test Mode (crank everything for naming tests)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(store.filters.testMode ? Theme.white : Theme.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(store.filters.testMode ? Color(hex: 0x2E7D32) : Theme.surface, in: RoundedRectangle(cornerRadius: 12))
             }
-            .buttonStyle(.plain)
 
             Spacer().frame(height: 10)
-            Button {
+            devButton("Zero Out (all sliders to 0)") {
+                store.zeroSliders()
+            }
+
+            Spacer().frame(height: 10)
+            devButton(
+                clearLandedArmed ? "Tap again to clear \(store.landed.count) landed" : "Clear Landed",
+                highlighted: clearLandedArmed,
+                highlightColor: Theme.armRed
+            ) {
+                if clearLandedArmed {
+                    store.clearLanded()
+                    clearLandedArmed = false
+                } else {
+                    clearLandedArmed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { clearLandedArmed = false }
+                }
+            }
+
+            Spacer().frame(height: 10)
+            devButton(
+                resetArmed ? "Tap again to reset everything" : "Reset all to defaults",
+                highlighted: resetArmed,
+                highlightColor: Theme.armRed
+            ) {
                 if resetArmed {
                     store.resetFilters(testMode: false)
                     resetArmed = false
@@ -199,18 +222,22 @@ struct FilterSheetView: View {
                     resetArmed = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) { resetArmed = false }
                 }
-            } label: {
-                Text(resetArmed ? "Tap again to reset everything" : "Reset all to defaults")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(resetArmed ? Theme.white : Theme.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(resetArmed ? Theme.armRed : Theme.surface, in: RoundedRectangle(cornerRadius: 12))
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 22)
         .padding(.top, 18)
         .padding(.bottom, 40)
+    }
+
+    private func devButton(_ label: String, highlighted: Bool = false, highlightColor: Color = Theme.armRed, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(highlighted ? Theme.white : Theme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(highlighted ? highlightColor : Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 }

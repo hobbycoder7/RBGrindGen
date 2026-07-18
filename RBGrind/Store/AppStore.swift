@@ -186,6 +186,22 @@ final class AppStore {
         return GenResult(raw: raw)
     }
 
+    // MARK: - dev tools (Filters sheet → Dev section)
+
+    /// Empties the landed list only — working/skipped/progression-skip stay.
+    /// Progression tiles re-lock automatically (their state derives from
+    /// landed sigs).
+    func clearLanded() {
+        setLanded("[]")
+    }
+
+    /// Drops all seven probability sliders to 0. Note this also gates off the
+    /// slider-gated bases (Rough → Tea Kettle, Negative → Hot Dog/Stub Soul),
+    /// same as dragging them there by hand.
+    func zeroSliders() {
+        filters.sliders = .init(switch: 0, topside: 0, negative: 0, christ: 0, antichrist: 0, rough: 0, tough: 0)
+    }
+
     // MARK: - testing support
 
     func resetAll() {

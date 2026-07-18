@@ -166,6 +166,28 @@ enum StoreSelfTest {
 
             store.resetAll()
 
+        case "devtest":
+            // Dev-section buttons: clearLanded and zeroSliders, through the
+            // exact store methods the UI calls, with persistence verified via
+            // a fresh UserDefaults read.
+            store.resetAll()
+            store.progAction("markLanded", id: "makio")
+            store.progAction("markLanded", id: "soul")
+            store.toggleWorking(store.generate()!, detailed: false)
+            print("RBG-DEVTEST: seeded landed=\(store.landed.count) working=\(store.working.count)")
+            store.clearLanded()
+            let persistedLanded = UserDefaults.standard.string(forKey: "rbrg_landed") ?? "?"
+            let clearOK = store.landed.isEmpty && persistedLanded == "[]" && store.working.count == 1
+            print("RBG-DEVTEST: clear landed → landed=\(store.landed.count) persisted=\(persistedLanded) workingKept=\(store.working.count) \(clearOK ? "PASS" : "FAIL")")
+
+            store.zeroSliders()
+            let s = store.filters.sliders
+            let allZero = [s.switch, s.topside, s.negative, s.christ, s.antichrist, s.rough, s.tough].allSatisfy { $0 == 0 }
+            let persistedFilters = UserDefaults.standard.string(forKey: "rbrg_filters") ?? ""
+            let persistedZero = persistedFilters.contains("\"switch\":0") && persistedFilters.contains("\"tough\":0")
+            print("RBG-DEVTEST: zero out → allZero=\(allZero) persisted=\(persistedZero) \(allZero && persistedZero ? "PASS" : "FAIL")")
+            store.resetAll()
+
         case "seed":
             // richer fixture for eyeballing the Landed screen: a few landed
             // tiles, one working-on trick, one too-hard trick — all through
