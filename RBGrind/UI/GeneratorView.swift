@@ -42,6 +42,9 @@ struct GeneratorView: View {
             if ProcessInfo.processInfo.environment["RBG_AUTOGEN"] == "1", result == nil {
                 generateAction()
             }
+            if let raw = ProcessInfo.processInfo.environment["RBG_SHEET"], let page = Int(raw) {
+                sheetPage = page
+            }
         }
     }
 
@@ -260,6 +263,7 @@ struct GeneratorView: View {
             HStack(spacing: 10) {
                 sheetButton("Tricks", icon: "square.grid.2x2") { sheetPage = 0 }
                 sheetButton("Filter", icon: "line.3.horizontal.decrease") { sheetPage = 1 }
+                sheetButton("Siri", icon: "waveform") { sheetPage = 2 }
             }
         }
         .padding(.horizontal, 22)

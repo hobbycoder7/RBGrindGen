@@ -13,10 +13,10 @@ struct FilterSheetView: View {
             header
             Divider().overlay(Theme.border)
             ScrollView {
-                if page == 0 {
-                    tricksPage
-                } else {
-                    filtersPage
+                switch page {
+                case 0: tricksPage
+                case 1: filtersPage
+                default: siriPage
                 }
             }
         }
@@ -30,6 +30,7 @@ struct FilterSheetView: View {
             HStack(spacing: 0) {
                 tab("Tricks", index: 0)
                 tab("Filters", index: 1)
+                tab("Siri", index: 2)
             }
             .padding(3)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 11))
@@ -239,5 +240,99 @@ struct FilterSheetView: View {
                 .background(highlighted ? highlightColor : Theme.surface, in: RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Siri page
+
+    private var siriPage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("These work hands-free, with the app closed — settings-aware ones (Grind, Switch Up, Grind Landed) always use whatever's set in Filters and Tricks right now.")
+                .font(.system(size: 12.5))
+                .lineSpacing(3)
+                .foregroundStyle(Theme.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 20)
+
+            ForEach(SiriCommand.all) { command in
+                SiriCommandCard(command: command)
+                if command.id != SiriCommand.all.last?.id {
+                    Spacer().frame(height: 14)
+                }
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 18)
+        .padding(.bottom, 40)
+    }
+}
+
+/// Display-only mirror of the phrases registered in
+/// RBGrind/Intents/GrindIntent.swift (RBGrindShortcuts) — "Grind" standing
+/// in for \(.applicationName) via the app's INAlternativeAppNames synonym.
+/// Keep this in sync by hand if a phrase is added/changed there.
+struct SiriCommand: Identifiable {
+    let id: String
+    let icon: String
+    let title: String
+    let summary: String
+    let phrases: [String]
+
+    static let all: [SiriCommand] = [
+        SiriCommand(
+            id: "generate",
+            icon: "bolt.fill",
+            title: "Generate a Grind",
+            summary: "Generates a trick using whatever's set in Filters and Tricks right now.",
+            phrases: ["Hey Siri, Grind", "Give me a Grind", "Give me a Grind trick", "New Grind trick", "Generate a Grind trick"]
+        ),
+        SiriCommand(
+            id: "switchup",
+            icon: "arrow.triangle.swap",
+            title: "Generate a Switch-Up",
+            summary: "Forces a fresh two-grind combo, even if the app is set to Single or a drill mode — doesn't change that setting.",
+            phrases: ["Grind switch up", "Switch up Grind", "Give me a Grind switch up", "Generate a Grind switch up"]
+        ),
+        SiriCommand(
+            id: "landed",
+            icon: "bookmark.fill",
+            title: "Mark Landed & Next",
+            summary: "Marks your last grind landed, then speaks a new one the same way (single stays single, switch-up stays switch-up).",
+            phrases: ["Grind landed", "Grind landon", "Mark Grind landed", "I landed my Grind"]
+        ),
+        SiriCommand(
+            id: "repeat",
+            icon: "arrow.counterclockwise",
+            title: "Repeat Last Grind",
+            summary: "Says the last grind Siri gave you again, without rolling a new one.",
+            phrases: ["Repeat Grind", "Repeat Grind grind", "Repeat my last Grind"]
+        ),
+    ]
+}
+
+private struct SiriCommandCard: View {
+    let command: SiriCommand
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: command.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 20)
+                Text(command.title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.text)
+            }
+            Text(command.summary)
+                .font(.system(size: 12.5))
+                .lineSpacing(3)
+                .foregroundStyle(Theme.muted)
+            ChipFlowLeadingLayout(spacing: 6) {
+                ForEach(command.phrases, id: \.self) { Chip(text: "\u{201C}\($0)\u{201D}") }
+            }
+            .padding(.top, 2)
+        }
+        .padding(14)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
     }
 }
