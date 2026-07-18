@@ -162,8 +162,8 @@ enum GrindIntentLogic {
     /// convenience repeat. Internal for intenttest.
     static let helpText = "Here are the R B Grind voice commands. "
         + "Say Grind to hear a random trick. "
-        + "Say Grind landed to mark it landed and hear the next one. "
-        + "Say Grind switch up for a two grind combo instead. "
+        + "Say Grind Landed to mark it landed and hear the next one. "
+        + "Say Grind Switch Up for a two grind combo instead. "
         + "And say Repeat Grind to hear the last one again. "
         + "The full list is in the app, under Siri."
 
@@ -192,9 +192,8 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             phrases: [
                 "\(.applicationName)",
                 "Give me a \(.applicationName)",
-                "Give me a \(.applicationName) grind",
-                "New \(.applicationName) grind",
-                "Generate a \(.applicationName) grind",
+                "New \(.applicationName)",
+                "Generate a \(.applicationName)",
             ],
             shortTitle: "Generate a Grind",
             systemImageName: "bolt.fill"
@@ -203,7 +202,7 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             intent: RepeatGrindIntent(),
             phrases: [
                 "Repeat \(.applicationName)",
-                "Repeat \(.applicationName) grind",
+                "Repeat previous \(.applicationName)",
                 "Repeat my last \(.applicationName)",
             ],
             shortTitle: "Repeat Last Grind",

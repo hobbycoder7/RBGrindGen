@@ -295,28 +295,28 @@ struct SiriCommand: Identifiable {
             icon: "bolt.fill",
             title: "Generate a Grind",
             summary: "Generates a trick using whatever's set in Filters and Tricks right now.",
-            phrases: ["Grind", "Give me a Grind", "Give me a Grind trick", "New Grind trick", "Generate a Grind trick"]
+            phrases: ["Grind", "Give me a Grind", "New Grind", "Generate a Grind"]
         ),
         SiriCommand(
             id: "switchup",
             icon: "arrow.triangle.swap",
             title: "Generate a Switch-Up",
             summary: "Forces a fresh two-grind combo, even if the app is set to Single or a drill mode — doesn't change that setting.",
-            phrases: ["Grind switch up", "Switch up Grind", "Give me a Grind switch up", "Generate a Grind switch up"]
+            phrases: ["Switch up Grind", "Give me a switch up Grind", "Grind switch up", "Generate a Grind switch up"]
         ),
         SiriCommand(
             id: "landed",
             icon: "bookmark.fill",
             title: "Mark Landed & Next",
             summary: "Marks your last grind landed. If Suggest Next Trick (above) is on, also speaks a new one the same way it came \u{2014} single stays single, switch-up stays switch-up.",
-            phrases: ["Grind landed", "Grind landon", "Mark Grind landed", "I landed my Grind"]
+            phrases: ["Grind landed", "Mark Grind landed", "I landed my Grind", "Grind landon"]
         ),
         SiriCommand(
             id: "repeat",
             icon: "arrow.counterclockwise",
             title: "Repeat Last Grind",
             summary: "Says the last grind Siri gave you again, without rolling a new one.",
-            phrases: ["Repeat Grind", "Repeat Grind grind", "Repeat my last Grind"]
+            phrases: ["Repeat Grind", "Repeat previous Grind", "Repeat my last Grind"]
         ),
         SiriCommand(
             id: "help",
