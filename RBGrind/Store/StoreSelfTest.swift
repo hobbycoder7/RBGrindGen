@@ -155,6 +155,75 @@ enum StoreSelfTest {
             let cacheUntouchedOff = store.lastSiriResult()?.sig == sigE
             print("RBG-INTENTTEST: cache untouched when OFF (no next trick rolled) → \(cacheUntouchedOff ? "PASS" : "FAIL")")
 
+            // "Skip Grind": marks too hard, then advances (settings-aware,
+            // same shape as Landed). A skipped SWITCH-UP records nothing
+            // (matches the web app's Too-Hard button, which disables itself
+            // on a chain) but still advances to a fresh chain.
+            store.resetAll()
+            _ = GrindIntentLogic.generateDialog()
+            let skigSigA = store.lastSiriResult()?.sig
+            let skip1 = GrindIntentLogic.skipDialog()
+            print("RBG-INTENTTEST: skip grind (single) → spoken=\"\(skip1.text)\"")
+            let skipMarked = store.skipped.contains { $0.sig == skigSigA } && !store.landed.contains { $0.sig == skigSigA }
+            print("RBG-INTENTTEST: previous single marked skipped → \(skipMarked ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: skip dialog has lead-in → \(skip1.text.hasPrefix("Skipped! Next up, ") ? "PASS" : "FAIL")")
+
+            _ = GrindIntentLogic.switchUpDialog()
+            let chainSigForSkip = store.lastSiriResult()?.sig
+            let skip2 = GrindIntentLogic.skipDialog()
+            print("RBG-INTENTTEST: skip grind (switch-up) → spoken=\"\(skip2.text)\"")
+            let chainNotSkipped = !store.skipped.contains { $0.sig == chainSigForSkip }
+            print("RBG-INTENTTEST: switch-up skip records nothing (chains aren't enumerable) → \(chainNotSkipped ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: still advances to a new switch-up → \(skip2.text.contains(" to ") ? "PASS" : "FAIL")")
+
+            let skipSigRepeat = store.lastSiriResult()?.sig
+            _ = GrindIntentLogic.skipDialog()
+            let skipStillOnce = store.skipped.filter { $0.sig == skipSigRepeat }.count <= 1
+            print("RBG-INTENTTEST: repeated skip never double-adds (toggle-safe) → \(skipStillOnce ? "PASS" : "FAIL")")
+
+            store.resetAll()
+            let freshSkip = GrindIntentLogic.skipDialog()
+            print("RBG-INTENTTEST: skip with no prior grind → \"\(freshSkip.text)\" \(freshSkip.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
+
+            store.landedSuggestsNext = false
+            _ = GrindIntentLogic.generateDialog()
+            let skipOff = GrindIntentLogic.skipDialog()
+            print("RBG-INTENTTEST: skip with suggest-next OFF → \"\(skipOff.text)\" \(skipOff.text == "Skipped!" ? "PASS" : "FAIL")")
+
+            // "Save Grind": marks working-on, then advances. Unlike Skip,
+            // switch-ups DO get recorded (Working On has no chain exclusion).
+            store.resetAll()
+            _ = GrindIntentLogic.generateDialog()
+            let saveSigA = store.lastSiriResult()?.sig
+            let save1 = GrindIntentLogic.saveDialog()
+            print("RBG-INTENTTEST: save grind (single) → spoken=\"\(save1.text)\"")
+            let saveMarked = store.working.contains { $0.sig == saveSigA } && !store.landed.contains { $0.sig == saveSigA }
+            print("RBG-INTENTTEST: previous single marked working-on → \(saveMarked ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: save dialog has lead-in → \(save1.text.hasPrefix("Saved! Next up, ") ? "PASS" : "FAIL")")
+
+            _ = GrindIntentLogic.switchUpDialog()
+            let chainSigForSave = store.lastSiriResult()?.sig
+            let save2 = GrindIntentLogic.saveDialog()
+            let chainSaved = store.working.contains { $0.sig == chainSigForSave && $0.isChain == true }
+            print("RBG-INTENTTEST: switch-up save records as a chain → \(chainSaved ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: still advances to a new switch-up → \(save2.text.contains(" to ") ? "PASS" : "FAIL")")
+
+            let saveSigRepeat = store.lastSiriResult()?.sig
+            _ = GrindIntentLogic.saveDialog()
+            let saveStillWorking = saveSigRepeat.map { s in store.working.contains { $0.sig == s } } ?? false
+            print("RBG-INTENTTEST: repeated save stays marked (toggle-safe) → \(saveStillWorking ? "PASS" : "FAIL")")
+
+            store.resetAll()
+            let freshSave = GrindIntentLogic.saveDialog()
+            print("RBG-INTENTTEST: save with no prior grind → \"\(freshSave.text)\" \(freshSave.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
+
+            store.landedSuggestsNext = false
+            _ = GrindIntentLogic.generateDialog()
+            let saveOff = GrindIntentLogic.saveDialog()
+            print("RBG-INTENTTEST: save with suggest-next OFF → \"\(saveOff.text)\" \(saveOff.text == "Saved!" ? "PASS" : "FAIL")")
+
+            store.resetAll()
+
             // Siri-only abbreviation expansion: BS→Backside, AO→Alley-oop
             let sp1 = GrindIntentLogic.spokenForm("Fakie 270 Inspin BS Royale")
             print("RBG-INTENTTEST: spokenForm BS → \"\(sp1)\" \(sp1 == "Fakie 270 Inspin Backside Royale" ? "PASS" : "FAIL")")
@@ -182,9 +251,9 @@ enum StoreSelfTest {
 
             // help text names every command, most important first
             let help = GrindIntentLogic.helpText
-            let namesAll = ["Say Grind", "Grind landed", "Grind switch up", "Repeat Grind"].allSatisfy { help.contains($0) }
-            let order = [help.range(of: "Say Grind to"), help.range(of: "Grind landed"),
-                         help.range(of: "Grind switch up"), help.range(of: "Repeat Grind")].compactMap { $0?.lowerBound }
+            let namesAll = ["Say Grind", "Grind Landed", "Grind Switch Up", "Repeat Grind"].allSatisfy { help.contains($0) }
+            let order = [help.range(of: "Say Grind to"), help.range(of: "Grind Landed"),
+                         help.range(of: "Grind Switch Up"), help.range(of: "Repeat Grind")].compactMap { $0?.lowerBound }
             let ordered = order.count == 4 && zip(order, order.dropFirst()).allSatisfy { $0 < $1 }
             print("RBG-INTENTTEST: help names all four commands in priority order → \(namesAll && ordered ? "PASS" : "FAIL")")
 

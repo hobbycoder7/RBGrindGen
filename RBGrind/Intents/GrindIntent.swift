@@ -50,6 +50,37 @@ struct GrindLandedIntent: AppIntent {
     }
 }
 
+/// Marks the last Siri-spoken trick "too hard" (skipped from future
+/// generation), then speaks a new one the same way it came — same
+/// hands-free advance as "Grind Landed", but for the trick you're passing on.
+struct SkipGrindIntent: AppIntent {
+    static let title: LocalizedStringResource = "Skip Grind"
+    static let description = IntentDescription(
+        "Marks your last RB Grind trick as too hard, then generates a new one."
+    )
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        .result(dialog: GrindIntentLogic.skipDialog().asIntentDialog)
+    }
+}
+
+/// Marks the last Siri-spoken trick "working on", then speaks a new one the
+/// same way it came.
+struct SaveGrindIntent: AppIntent {
+    static let title: LocalizedStringResource = "Save Grind"
+    static let description = IntentDescription(
+        "Marks your last RB Grind trick as working-on, then generates a new one."
+    )
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        .result(dialog: GrindIntentLogic.saveDialog().asIntentDialog)
+    }
+}
+
 /// Repeats the last trick GenerateGrindIntent or SwitchUpGrindIntent spoke —
 /// no new roll, just re-reads AppStore's cached last-Siri-result. Independent
 /// of whatever the in-app Generator screen currently shows.
@@ -117,26 +148,50 @@ enum GrindIntentLogic {
             .replacingOccurrences(of: "\\bAO\\b", with: "Alley-oop", options: .regularExpression)
     }
 
-    /// Marks whatever was last spoken landed (one-way — never un-marks). If
-    /// `landedSuggestsNext` is on (default), also rolls and speaks the next
-    /// one the same way the last came: the last result's own isChain decides
-    /// single vs. switch-up, not the app's stored toggle, since the last one
-    /// may itself have come from the ad hoc "Switch Up Grind" phrase. The
-    /// "Landed!" lead-in only applies to a real new trick — an empty-pool/
-    /// error message speaks plain, no lead-in. With the toggle off, the chain
-    /// ends at the landing: just "Landed!", no new trick, cache untouched.
+    /// Marks whatever was last spoken landed (one-way — never un-marks), then
+    /// advances. See advanceDialog for the shared next-trick/toggle logic.
     @MainActor
     static func landedDialog() -> Dialog {
+        advanceDialog(verb: "Landed") { store, last in store.markLandedIfNeeded(last) }
+    }
+
+    /// Marks whatever was last spoken "too hard" (skipped), then advances.
+    /// Skipping a switch-up records nothing (chains aren't an enumerable
+    /// pool to exclude from — same as the web app's Too-Hard button, which
+    /// disables itself on a chain) but still rolls the next one.
+    @MainActor
+    static func skipDialog() -> Dialog {
+        advanceDialog(verb: "Skipped") { store, last in store.skipTrick(last, detailed: false) }
+    }
+
+    /// Marks whatever was last spoken "working on" (one-way — never
+    /// un-marks), then advances.
+    @MainActor
+    static func saveDialog() -> Dialog {
+        advanceDialog(verb: "Saved") { store, last in store.markWorkingIfNeeded(last) }
+    }
+
+    /// Shared shape of Landed/Skip/Save: apply `mark` to whatever was last
+    /// spoken, then — if `landedSuggestsNext` is on (default) — roll and
+    /// speak the next one the same way the last came: the last result's own
+    /// isChain decides single vs. switch-up, not the app's stored toggle,
+    /// since the last one may itself have come from the ad hoc "Switch Up
+    /// Grind" phrase. The "<Verb>!" lead-in only applies to a real new
+    /// trick — an empty-pool/error message speaks plain, no lead-in. With
+    /// the toggle off, the chain ends at the mark: just "<Verb>!", no new
+    /// trick, cache untouched.
+    @MainActor
+    private static func advanceDialog(verb: String, mark: (AppStore, GenResult) -> Void) -> Dialog {
         let store = AppStore.shared
         guard let last = store.lastSiriResult() else {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
-        store.markLandedIfNeeded(last)
+        mark(store, last)
         guard store.landedSuggestsNext else {
-            return Dialog(text: "Landed!")
+            return Dialog(text: "\(verb)!")
         }
         let nextResult = last.isChain ? store.generateSwitchUp() : store.generate()
-        return dialog(forFreshResult: nextResult, leadIn: "Landed! Next up,")
+        return dialog(forFreshResult: nextResult, leadIn: "\(verb)! Next up,")
     }
 
     /// Shared tail of generateDialog/switchUpDialog/landedDialog: validate,
@@ -229,6 +284,26 @@ struct RBGrindShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Mark Landed & Next",
             systemImageName: "bookmark.fill"
+        )
+        AppShortcut(
+            intent: SkipGrindIntent(),
+            phrases: [
+                "Skip \(.applicationName)",
+                "\(.applicationName) skip",
+                "Too hard \(.applicationName)",
+            ],
+            shortTitle: "Skip (Too Hard)",
+            systemImageName: "nosign"
+        )
+        AppShortcut(
+            intent: SaveGrindIntent(),
+            phrases: [
+                "Save \(.applicationName)",
+                "\(.applicationName) save",
+                "Working on \(.applicationName)",
+            ],
+            shortTitle: "Save (Working On)",
+            systemImageName: "target"
         )
         AppShortcut(
             intent: GrindHelpIntent(),

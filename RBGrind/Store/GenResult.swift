@@ -128,8 +128,18 @@ extension AppStore {
         return true
     }
 
+    /// One-way "mark working-on" — same reasoning as markLandedIfNeeded,
+    /// used by "Save Grind".
+    @discardableResult
+    func markWorkingIfNeeded(_ result: GenResult, detailed: Bool = false) -> Bool {
+        guard !isWorking(result.sig) else { return false }
+        toggleWorking(result, detailed: detailed)
+        return true
+    }
+
     func isLanded(_ sig: String?) -> Bool { sig.map { s in landed.contains { $0.sig == s } } ?? false }
     func isWorking(_ sig: String?) -> Bool { sig.map { s in working.contains { $0.sig == s } } ?? false }
+    func isSkipped(_ sig: String?) -> Bool { sig.map { s in skipped.contains { $0.sig == s } } ?? false }
 
     /// Family-grouped base tricks for the sheet (cached after first fetch).
     static var baseListCache: (soul: [BaseTrick], groove: [BaseTrick])?

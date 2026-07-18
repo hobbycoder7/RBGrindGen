@@ -30,10 +30,12 @@ final class AppStore {
         didSet { if !loading { persistFilters() } }
     }
 
-    /// Whether "Grind Landed" rolls and speaks a new trick after marking the
-    /// previous one landed, or just confirms the landing and stops there.
-    /// Native-only (not part of Filters — the web app has no such concept),
-    /// surfaced as a toggle at the top of the Siri page. Defaults to on.
+    /// Whether "Grind Landed" / "Skip Grind" / "Save Grind" roll and speak a
+    /// new trick after marking the previous one, or just confirm the mark
+    /// and stop there. Native-only (not part of Filters — the web app has no
+    /// such concept), surfaced as a toggle at the top of the Siri page.
+    /// Defaults to on. (Symbol name predates Skip/Save; kept to avoid
+    /// churning an already-persisted UserDefaults key for a cosmetic rename.)
     var landedSuggestsNext: Bool {
         didSet { if !loading { defaults.set(landedSuggestsNext, forKey: Key.landedSuggestsNext) } }
     }

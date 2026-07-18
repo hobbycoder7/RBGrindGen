@@ -249,7 +249,7 @@ struct FilterSheetView: View {
             VStack(spacing: 0) {
                 ToggleRow(
                     label: "Suggest Next Trick",
-                    sublabel: "After \u{201C}Grind Landed,\u{201D} also roll and speak a new one. Off just confirms the landing — the chain ends there.",
+                    sublabel: "After Grind Landed, Skip, or Save, also roll and speak a new one. Off just confirms the mark — the chain ends there.",
                     value: $store.landedSuggestsNext,
                     compact: true
                 )
@@ -259,7 +259,7 @@ struct FilterSheetView: View {
             .padding(.bottom, 18)
 
             (Text("Say \u{201C}Hey Siri\u{201D} before any phrase below").fontWeight(.bold).foregroundStyle(Theme.text)
-             + Text(" — they work hands-free, with the app closed. Settings-aware ones (Grind, Switch Up, Grind Landed) always use whatever's set in Filters and Tricks right now.").foregroundStyle(Theme.muted))
+             + Text(" — they work hands-free, with the app closed. Settings-aware ones (Grind, Switch Up, and any next trick after Landed/Skip/Save) always use whatever's set in Filters and Tricks right now.").foregroundStyle(Theme.muted))
                 .font(.system(size: 12.5))
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,6 +310,20 @@ struct SiriCommand: Identifiable {
             title: "Mark Landed & Next",
             summary: "Marks your last grind landed. If Suggest Next Trick (above) is on, also speaks a new one the same way it came \u{2014} single stays single, switch-up stays switch-up.",
             phrases: ["Grind landed", "Mark Grind landed", "I landed my Grind", "Grind landon"]
+        ),
+        SiriCommand(
+            id: "skip",
+            icon: "nosign",
+            title: "Skip (Too Hard)",
+            summary: "Marks your last grind too hard, hiding it from future generation. If Suggest Next Trick (above) is on, also speaks a new one the same way it came.",
+            phrases: ["Skip Grind", "Grind skip", "Too hard Grind"]
+        ),
+        SiriCommand(
+            id: "save",
+            icon: "target",
+            title: "Save (Working On)",
+            summary: "Marks your last grind working-on, so it keeps coming back up for practice. If Suggest Next Trick (above) is on, also speaks a new one the same way it came.",
+            phrases: ["Save Grind", "Grind save", "Working on Grind"]
         ),
         SiriCommand(
             id: "repeat",
