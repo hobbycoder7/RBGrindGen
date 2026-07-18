@@ -5,8 +5,14 @@ enum Screen: String, CaseIterable {
 }
 
 /// App shell: screen switching + the custom bottom nav from the web app.
+///
+/// The store (and with it the JS engine) is NOT touched until after the first
+/// frame: SwiftUI paints the splash immediately, then the deferred `.task`
+/// does the blocking AppStore/JSContext init behind it. Before this, the
+/// engine loaded before anything drew — on a device Debug build that read as
+/// a frozen white screen.
 struct RootView: View {
-    @State private var store = AppStore.shared
+    @State private var store: AppStore?
     @State private var screen: Screen = .generator
     @State private var progSelection: String?
 
@@ -22,6 +28,22 @@ struct RootView: View {
     }
 
     var body: some View {
+        Group {
+            if let store {
+                appShell(store)
+            } else {
+                LaunchSplash()
+                    .task {
+                        // runs after the splash's first frame is committed
+                        store = AppStore.shared
+                    }
+            }
+        }
+        .background(Theme.bg)
+        .preferredColorScheme(.light)
+    }
+
+    private func appShell(_ store: AppStore) -> some View {
         VStack(spacing: 0) {
             switch screen {
             case .generator:
@@ -33,11 +55,9 @@ struct RootView: View {
             }
             // the progression detail footer replaces the nav while a tile is selected
             if !(screen == .progression && progSelection != nil) {
-                bottomNav
+                bottomNav(store)
             }
         }
-        .background(Theme.bg)
-        .preferredColorScheme(.light)
         .onAppear {
             // test-drive hook: reproduce "switch away and back" headlessly
             if ProcessInfo.processInfo.environment["RBG_TABTEST"] == "1" {
@@ -47,7 +67,7 @@ struct RootView: View {
         }
     }
 
-    private var bottomNav: some View {
+    private func bottomNav(_ store: AppStore) -> some View {
         HStack(spacing: 0) {
             navTab(.generator, label: "Generator", icon: "bolt")
             navTab(.landed, label: store.landed.isEmpty ? "Landed" : "Landed (\(store.landed.count))", icon: "list.bullet")
@@ -57,6 +77,41 @@ struct RootView: View {
         .padding(.bottom, 6)
         .background(Theme.bg)
         .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
+    }
+
+    /// Instant first frame while the engine loads: the app-icon tile look on
+    /// the cream field (continuous with the static launch screen) plus a
+    /// spinner so a slow cold start reads as loading, not frozen.
+    private struct LaunchSplash: View {
+        var body: some View {
+            VStack(spacing: 22) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Theme.accent)
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Theme.landedBorder, lineWidth: 4)
+                    Text("RB")
+                        .font(Theme.glyph(size: 44))
+                        .foregroundStyle(Theme.white)
+                }
+                .frame(width: 112, height: 112)
+                .overlay(alignment: .topTrailing) {
+                    Circle()
+                        .fill(Theme.accent)
+                        .overlay(Circle().stroke(Theme.bg, lineWidth: 3))
+                        .frame(width: 22, height: 22)
+                        .offset(x: 8, y: -8)
+                }
+                Text("RB Grind".uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .kerning(2.2)
+                    .foregroundStyle(Theme.muted)
+                ProgressView()
+                    .tint(Theme.muted)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.bg)
+        }
     }
 
     private func navTab(_ target: Screen, label: String, icon: String) -> some View {
