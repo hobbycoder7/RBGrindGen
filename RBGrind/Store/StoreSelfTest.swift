@@ -370,6 +370,16 @@ enum StoreSelfTest {
             print("RBG-GENTEST: switch=0 over 60 generates → \(noneSwitch ? "ZERO Switch — PASS" : "FAIL")")
             store.resetAll()
 
+        case "siriseed":
+            // Half of the Generator-shows-Siri's-trick test: seed a Siri
+            // result and STOP (no reset) — a separate launch with no test
+            // hook then checks whether AppStore.init() picked it up into
+            // currentResult, proving this survives a real process boundary
+            // rather than just an in-process check.
+            store.resetAll()
+            let seeded = GrindIntentLogic.generateDialog()
+            print("RBG-SIRISEED: spoken=\"\(seeded.text)\"")
+
         default:
             break
         }

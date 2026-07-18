@@ -83,6 +83,10 @@ final class AppStore {
         setWorking(defaults.string(forKey: Key.working) ?? "[]", persist: false)
         setSkipped(defaults.string(forKey: Key.skipped) ?? "[]", persist: false)
         setProgSkip(defaults.string(forKey: Key.progSkip) ?? "[]", persist: false)
+        // opening the app after Siri generated something shows that trick,
+        // not a blank screen — same 1h freshness rule as Repeat/Landed/Skip/
+        // Save, so a same-session Siri trick appears but a stale one doesn't
+        currentResult = lastSiriResult()
         loading = false
     }
 
