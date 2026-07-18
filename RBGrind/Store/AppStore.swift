@@ -21,12 +21,21 @@ final class AppStore {
         static let skipped = "rbrg_skipped"
         static let progSkip = "rbrg_prog_skip"
         static let lastSiriResult = "rbrg_last_siri_result"
+        static let landedSuggestsNext = "rbrg_landed_suggests_next"
     }
 
     // MARK: typed filters (persist on every change)
 
     var filters: Filters {
         didSet { if !loading { persistFilters() } }
+    }
+
+    /// Whether "Grind Landed" rolls and speaks a new trick after marking the
+    /// previous one landed, or just confirms the landing and stops there.
+    /// Native-only (not part of Filters — the web app has no such concept),
+    /// surfaced as a toggle at the top of the Siri page. Defaults to on.
+    var landedSuggestsNext: Bool {
+        didSet { if !loading { defaults.set(landedSuggestsNext, forKey: Key.landedSuggestsNext) } }
     }
 
     // MARK: opaque list JSON (written only from JS results or reset)
@@ -65,6 +74,9 @@ final class AppStore {
             fatalError("[AppStore] engine failed to provide filters")
         }
         filters = merged
+        landedSuggestsNext = defaults.object(forKey: Key.landedSuggestsNext) != nil
+            ? defaults.bool(forKey: Key.landedSuggestsNext)
+            : true
         setLanded(defaults.string(forKey: Key.landed) ?? "[]", persist: false)
         setWorking(defaults.string(forKey: Key.working) ?? "[]", persist: false)
         setSkipped(defaults.string(forKey: Key.skipped) ?? "[]", persist: false)
@@ -214,7 +226,7 @@ final class AppStore {
     // MARK: - testing support
 
     func resetAll() {
-        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip, Key.lastSiriResult].forEach {
+        [Key.filters, Key.landed, Key.working, Key.skipped, Key.progSkip, Key.lastSiriResult, Key.landedSuggestsNext].forEach {
             defaults.removeObject(forKey: $0)
         }
         loading = true
@@ -222,6 +234,7 @@ final class AppStore {
            let fresh = try? JSONDecoder().decode(Filters.self, from: Data(json.utf8)) {
             filters = fresh
         }
+        landedSuggestsNext = true
         setLanded("[]", persist: false)
         setWorking("[]", persist: false)
         setSkipped("[]", persist: false)

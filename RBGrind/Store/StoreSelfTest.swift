@@ -143,6 +143,18 @@ enum StoreSelfTest {
             let freshLanded = GrindIntentLogic.landedDialog()
             print("RBG-INTENTTEST: grind landed with no prior grind → \"\(freshLanded.text)\" \(freshLanded.text.contains("haven't asked") ? "PASS (fresh-install fallback)" : "FAIL")")
 
+            // landedSuggestsNext toggle: defaults on, and off stops the chain
+            print("RBG-INTENTTEST: landedSuggestsNext defaults true → \(store.landedSuggestsNext ? "PASS" : "FAIL")")
+            store.landedSuggestsNext = false
+            _ = GrindIntentLogic.generateDialog()
+            let sigE = store.lastSiriResult()?.sig
+            let landedOff = GrindIntentLogic.landedDialog()
+            print("RBG-INTENTTEST: landed with suggest-next OFF → \"\(landedOff.text)\" \(landedOff.text == "Landed!" ? "PASS" : "FAIL")")
+            let markedOff = store.landed.contains { $0.sig == sigE }
+            print("RBG-INTENTTEST: still marks landed when OFF → \(markedOff ? "PASS" : "FAIL")")
+            let cacheUntouchedOff = store.lastSiriResult()?.sig == sigE
+            print("RBG-INTENTTEST: cache untouched when OFF (no next trick rolled) → \(cacheUntouchedOff ? "PASS" : "FAIL")")
+
             // Siri-only abbreviation expansion: BS→Backside, AO→Alley-oop
             let sp1 = GrindIntentLogic.spokenForm("Fakie 270 Inspin BS Royale")
             print("RBG-INTENTTEST: spokenForm BS → \"\(sp1)\" \(sp1 == "Fakie 270 Inspin Backside Royale" ? "PASS" : "FAIL")")

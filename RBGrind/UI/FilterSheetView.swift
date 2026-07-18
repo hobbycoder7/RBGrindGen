@@ -246,6 +246,18 @@ struct FilterSheetView: View {
 
     private var siriPage: some View {
         VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
+                ToggleRow(
+                    label: "Suggest Next Trick",
+                    sublabel: "After \u{201C}Grind Landed,\u{201D} also roll and speak a new one. Off just confirms the landing — the chain ends there.",
+                    value: $store.landedSuggestsNext,
+                    compact: true
+                )
+            }
+            .padding(14)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+            .padding(.bottom, 18)
+
             (Text("Say \u{201C}Hey Siri\u{201D} before any phrase below").fontWeight(.bold).foregroundStyle(Theme.text)
              + Text(" — they work hands-free, with the app closed. Settings-aware ones (Grind, Switch Up, Grind Landed) always use whatever's set in Filters and Tricks right now.").foregroundStyle(Theme.muted))
                 .font(.system(size: 12.5))
@@ -296,7 +308,7 @@ struct SiriCommand: Identifiable {
             id: "landed",
             icon: "bookmark.fill",
             title: "Mark Landed & Next",
-            summary: "Marks your last grind landed, then speaks a new one the same way (single stays single, switch-up stays switch-up).",
+            summary: "Marks your last grind landed. If Suggest Next Trick (above) is on, also speaks a new one the same way it came \u{2014} single stays single, switch-up stays switch-up.",
             phrases: ["Grind landed", "Grind landon", "Mark Grind landed", "I landed my Grind"]
         ),
         SiriCommand(

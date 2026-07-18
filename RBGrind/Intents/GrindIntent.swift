@@ -103,12 +103,14 @@ enum GrindIntentLogic {
             .replacingOccurrences(of: "\\bAO\\b", with: "Alley-oop", options: .regularExpression)
     }
 
-    /// Marks whatever was last spoken landed (one-way — never un-marks), then
-    /// generates the next one the same way: the last result's own isChain
-    /// decides single vs. switch-up, not the app's stored toggle, since the
-    /// last one may itself have come from the ad hoc "Switch Up Grind" phrase.
-    /// The "Landed!" lead-in only applies here — a real new trick confirms it
-    /// actually rolled; an empty-pool/error message speaks plain, no lead-in.
+    /// Marks whatever was last spoken landed (one-way — never un-marks). If
+    /// `landedSuggestsNext` is on (default), also rolls and speaks the next
+    /// one the same way the last came: the last result's own isChain decides
+    /// single vs. switch-up, not the app's stored toggle, since the last one
+    /// may itself have come from the ad hoc "Switch Up Grind" phrase. The
+    /// "Landed!" lead-in only applies to a real new trick — an empty-pool/
+    /// error message speaks plain, no lead-in. With the toggle off, the chain
+    /// ends at the landing: just "Landed!", no new trick, cache untouched.
     @MainActor
     static func landedDialog() -> Dialog {
         let store = AppStore.shared
@@ -116,6 +118,9 @@ enum GrindIntentLogic {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         store.markLandedIfNeeded(last)
+        guard store.landedSuggestsNext else {
+            return Dialog(text: "Landed!")
+        }
         let nextResult = last.isChain ? store.generateSwitchUp() : store.generate()
         return dialog(forFreshResult: nextResult, leadIn: "Landed! Next up,")
     }
