@@ -1252,18 +1252,29 @@ function __abbrevBackside(s) {
   if (!s) return s;
   return s.replace(/\bBackside(?= [A-Z])/g, 'BS');
 }
+// 3. Short-form Truespin abbreviates to "Tru" ("Tru Soul", not "True Soul");
+//    detailed keeps the slice's own "Truespin" untouched (that word never
+//    matches \bTrue\b — "Truespin" has no boundary after "True"). The word
+//    is always immediately followed by another capitalized token (a modifier
+//    or the grind name itself — entryName never emits it as the final word),
+//    so a plain word-boundary swap is safe with no bare-word case to protect,
+//    unlike Backside.
+function __abbrevTrue(s) {
+  if (!s) return s;
+  return s.replace(/\bTrue\b/g, 'Tru');
+}
 
 function __displayFor(trick, chain, specialFirst, detailed) {
   if (chain) {
     const d = computeChainDisplay(chain, { specialFirst, detailed, spellBackside: true });
-    const main = __exitWording(detailed ? d.main : __abbrevBackside(d.main));
+    const main = __exitWording(detailed ? d.main : __abbrevTrue(__abbrevBackside(d.main)));
     return { main, sub: null, lead: null, trail: null, specialName: null,
              legs: d.legs.map(l => ({ label: l.label, name: l.name, lead: l.lead, trail: l.trail,
                                       bog: bogLink(l.baseId, l.specialName) })) };
   }
   const d = computeDisplay(trick, { specialFirst, detailed, spellBackside: true });
-  const main = __exitWording(detailed ? d.main : __abbrevBackside(d.main));
-  const sub = detailed ? d.sub : __abbrevBackside(d.sub);
+  const main = __exitWording(detailed ? d.main : __abbrevTrue(__abbrevBackside(d.main)));
+  const sub = detailed ? d.sub : __abbrevTrue(__abbrevBackside(d.sub));
   return { main, sub, lead: d.lead, trail: d.trail,
            specialName: d.specialName, legs: null, bog: bogLink(trick.baseId, d.specialName) };
 }
@@ -1482,7 +1493,7 @@ function nativeProgDrawer(payloadJSON) {
   const top = nodeDrawerTop(node);
   const spins = spinsForNode(node).map(s => {
     const sig = spinSig(node.base, s, top);
-    return { key: s.key, label: s.label, name: spinName(node.base, s, top), sig,
+    return { key: s.key, label: s.label, name: __abbrevTrue(spinName(node.base, s, top)), sig,
              landed: landedSigSet.has(sig), bog: spinBog(node.base, s, top) };
   });
   const mods = modsForNode(node).map(m => {
@@ -1516,7 +1527,7 @@ function nativeProgAction(payloadJSON) {
     case 'unmark':     removeShared(progSig(node)); break;
     case 'skip':       if (progCanSkip(node) && !progSkip.includes(node.id)) progSkip = [...progSkip, node.id]; break;
     case 'unskip':     progSkip = progSkip.filter(id => id !== node.id); break;
-    case 'markSpin':   { const s = findSpin(P.spinKey); if (s) addShared(spinSig(node.base, s, top), spinEntry(node.base, s, top)); break; }
+    case 'markSpin':   { const s = findSpin(P.spinKey); if (s) { const e = spinEntry(node.base, s, top); e.display = __abbrevTrue(e.display); addShared(spinSig(node.base, s, top), e); } break; }
     case 'unmarkSpin': { const s = findSpin(P.spinKey); if (s) removeShared(spinSig(node.base, s, top)); break; }
     case 'markMod':    addShared(modSig(node, P.modKey), modEntry(node, P.modKey)); break;
     case 'unmarkMod':  removeShared(modSig(node, P.modKey)); break;
