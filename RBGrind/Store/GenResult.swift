@@ -114,7 +114,7 @@ extension AppStore {
     }
 
     func toggleLanded(_ result: GenResult, detailed: Bool) { mutateLists("nativeToggleLanded", result: result, detailed: detailed) }
-    func toggleWorking(_ result: GenResult, detailed: Bool) { mutateLists("nativeToggleWorking", result: result, detailed: detailed) }
+    func toggleWorkingOn(_ result: GenResult, detailed: Bool) { mutateLists("nativeToggleWorking", result: result, detailed: detailed) }
     func skipTrick(_ result: GenResult, detailed: Bool) { mutateLists("nativeSkipTrick", result: result, detailed: detailed) }
 
     /// One-way "mark landed" — adds if absent, never un-marks. `toggleLanded`
@@ -131,9 +131,9 @@ extension AppStore {
     /// One-way "mark working-on" — same reasoning as markLandedIfNeeded,
     /// used by "Save Grind".
     @discardableResult
-    func markWorkingIfNeeded(_ result: GenResult, detailed: Bool = false) -> Bool {
+    func markWorkingOnIfNeeded(_ result: GenResult, detailed: Bool = false) -> Bool {
         guard !isWorking(result.sig) else { return false }
-        toggleWorking(result, detailed: detailed)
+        toggleWorkingOn(result, detailed: detailed)
         return true
     }
 

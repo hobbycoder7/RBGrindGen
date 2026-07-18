@@ -168,7 +168,7 @@ enum GrindIntentLogic {
     /// un-marks), then advances.
     @MainActor
     static func saveDialog() -> Dialog {
-        advanceDialog(verb: "Saved") { store, last in store.markWorkingIfNeeded(last) }
+        advanceDialog(verb: "Saved") { store, last in store.markWorkingOnIfNeeded(last) }
     }
 
     /// Shared shape of Landed/Skip/Save: apply `mark` to whatever was last
@@ -212,15 +212,17 @@ enum GrindIntentLogic {
         return Dialog(text: leadIn.map { "\($0) \(spoken)" } ?? spoken)
     }
 
-    /// Spoken command tour, most important first: core generate, the
-    /// hands-free session driver, the alternate generate mode, then the
+    /// Spoken command tour, all six action commands in the same priority
+    /// order as the app's Siri page cards: core generate, the alternate
+    /// generate mode, then the three hands-free session actions, then the
     /// convenience repeat. Internal for intenttest.
     static let helpText = "Here are the R B Grind voice commands. "
         + "Say Grind to hear a random trick. "
-        + "Say Grind Landed to mark it landed and hear the next one. "
         + "Say Grind Switch Up for a two grind combo instead. "
+        + "Say Grind Landed to mark it landed and hear the next one. "
+        + "Say Grind Skip if it's too hard, or Grind Save to keep working on it — either way, you'll hear the next one. "
         + "And say Repeat Grind to hear the last one again. "
-        + "The full list is in the app, under Siri."
+        + "The full list of phrases is in the app, under Siri."
 
     private static func emptyMessage(for key: String?) -> String {
         switch key ?? "" {

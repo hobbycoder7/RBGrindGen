@@ -249,13 +249,15 @@ enum StoreSelfTest {
             let w1 = GrindIntentLogic.generateDialog()
             print("RBG-INTENTTEST: exit wording → \"\(w1.text)\" \(w1.text == "Soul fakie out" ? "PASS (stance-out)" : "FAIL")")
 
-            // help text names every command, most important first
+            // help text names all six action commands, most important first
+            // (matches the Siri page card order: generate, switch-up,
+            // landed, skip, save, repeat)
             let help = GrindIntentLogic.helpText
-            let namesAll = ["Say Grind", "Grind Landed", "Grind Switch Up", "Repeat Grind"].allSatisfy { help.contains($0) }
-            let order = [help.range(of: "Say Grind to"), help.range(of: "Grind Landed"),
-                         help.range(of: "Grind Switch Up"), help.range(of: "Repeat Grind")].compactMap { $0?.lowerBound }
-            let ordered = order.count == 4 && zip(order, order.dropFirst()).allSatisfy { $0 < $1 }
-            print("RBG-INTENTTEST: help names all four commands in priority order → \(namesAll && ordered ? "PASS" : "FAIL")")
+            let namesAll = ["Say Grind to", "Grind Switch Up", "Grind Landed", "Grind Skip", "Grind Save", "Repeat Grind"].allSatisfy { help.contains($0) }
+            let order = [help.range(of: "Say Grind to"), help.range(of: "Grind Switch Up"), help.range(of: "Grind Landed"),
+                         help.range(of: "Grind Skip"), help.range(of: "Grind Save"), help.range(of: "Repeat Grind")].compactMap { $0?.lowerBound }
+            let ordered = order.count == 6 && zip(order, order.dropFirst()).allSatisfy { $0 < $1 }
+            print("RBG-INTENTTEST: help names all six commands in priority order → \(namesAll && ordered ? "PASS" : "FAIL")")
 
             store.resetAll()
 
@@ -266,7 +268,7 @@ enum StoreSelfTest {
             store.resetAll()
             store.progAction("markLanded", id: "makio")
             store.progAction("markLanded", id: "soul")
-            store.toggleWorking(store.generate()!, detailed: false)
+            store.toggleWorkingOn(store.generate()!, detailed: false)
             print("RBG-DEVTEST: seeded landed=\(store.landed.count) working=\(store.working.count)")
             store.clearLanded()
             let persistedLanded = UserDefaults.standard.string(forKey: "rbrg_landed") ?? "?"
@@ -296,7 +298,7 @@ enum StoreSelfTest {
             store.progAction("markLanded", id: "frontside")
             store.progAction("markSpin", id: "makio", spinKey: "zero")
             if let r = store.generate() {
-                store.toggleWorking(r, detailed: false)
+                store.toggleWorkingOn(r, detailed: false)
                 if let r2 = store.generate(currentSig: r.sig) {
                     store.skipTrick(r2, detailed: false)
                 }

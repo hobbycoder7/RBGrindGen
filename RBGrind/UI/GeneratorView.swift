@@ -333,7 +333,7 @@ struct GeneratorView: View {
             squareButton(active: anyVisible, fill: isWorking ? Theme.accent : Theme.surface, fg: isWorking ? Theme.white : Theme.muted) {
                 guard let result else { return }
                 skipArmed = false
-                store.toggleWorking(result, detailed: exitDetailed)
+                store.toggleWorkingOn(result, detailed: exitDetailed)
             } label: {
                 Image(systemName: isWorking ? "target" : "circle.circle")
             }
