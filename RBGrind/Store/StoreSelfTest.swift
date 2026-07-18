@@ -117,6 +117,10 @@ enum StoreSelfTest {
             let sigB = store.lastSiriResult()?.sig
             print("RBG-INTENTTEST: a new trick was generated and cached → \(sigB != nil && sigB != sigA ? "PASS" : "FAIL")")
             print("RBG-INTENTTEST: app's switchUp toggle untouched by single landed-flow → \(store.filters.switchUp == 0 ? "PASS" : "FAIL")")
+            print("RBG-INTENTTEST: landed dialog has lead-in → \(landed1.text.hasPrefix("Landed! Next up, ") ? "PASS" : "FAIL")")
+            let repeatAfterLanded = GrindIntentLogic.repeatDialog()
+            let repeatHasNoLeadIn = !repeatAfterLanded.text.hasPrefix("Landed!") && landed1.text == "Landed! Next up, " + repeatAfterLanded.text
+            print("RBG-INTENTTEST: repeat after landed drops lead-in → \"\(repeatAfterLanded.text)\" \(repeatHasNoLeadIn ? "PASS" : "FAIL")")
 
             _ = GrindIntentLogic.switchUpDialog()
             let sigC = store.lastSiriResult()?.sig

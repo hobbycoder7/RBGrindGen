@@ -107,6 +107,8 @@ enum GrindIntentLogic {
     /// generates the next one the same way: the last result's own isChain
     /// decides single vs. switch-up, not the app's stored toggle, since the
     /// last one may itself have come from the ad hoc "Switch Up Grind" phrase.
+    /// The "Landed!" lead-in only applies here — a real new trick confirms it
+    /// actually rolled; an empty-pool/error message speaks plain, no lead-in.
     @MainActor
     static func landedDialog() -> Dialog {
         let store = AppStore.shared
@@ -114,13 +116,14 @@ enum GrindIntentLogic {
             return Dialog(text: "You haven't asked for a grind yet — say Hey Siri, Grind first.")
         }
         store.markLandedIfNeeded(last)
-        return last.isChain ? switchUpDialog() : generateDialog()
+        let nextResult = last.isChain ? store.generateSwitchUp() : store.generate()
+        return dialog(forFreshResult: nextResult, leadIn: "Landed! Next up,")
     }
 
-    /// Shared tail of generateDialog/switchUpDialog: validate, cache for
-    /// "repeat", speak the name.
+    /// Shared tail of generateDialog/switchUpDialog/landedDialog: validate,
+    /// cache for "repeat", speak the name (optionally prefixed).
     @MainActor
-    private static func dialog(forFreshResult result: GenResult?) -> Dialog {
+    private static func dialog(forFreshResult result: GenResult?, leadIn: String? = nil) -> Dialog {
         guard let result else {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
@@ -131,7 +134,8 @@ enum GrindIntentLogic {
             return Dialog(text: "Something went wrong generating a trick. Open RB Grind and try there.")
         }
         AppStore.shared.saveLastSiriResult(result)
-        return Dialog(text: spokenForm(display.main))
+        let spoken = spokenForm(display.main)
+        return Dialog(text: leadIn.map { "\($0) \(spoken)" } ?? spoken)
     }
 
     private static func emptyMessage(for key: String?) -> String {
