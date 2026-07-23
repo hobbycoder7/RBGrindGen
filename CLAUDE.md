@@ -10,11 +10,18 @@ implemented (Siri device voice test still pending a connected iPhone).
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1200 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v3_05.jsx` (source lines 3–1202). Never edit that
-  region; re-extract with `sed -n '3,1202p'` if the reference ever changes.
-  Below the `NATIVE BRIDGE` marker: `native*` wrapper functions (JSON string in
-  → JSON string out) that port the web App() handler logic verbatim.
+- `RBGrind/Engine/grind_engine.js` — lines 1–1248 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v3_05.jsx` (source lines 3–1250, current as of
+  v3.06). Never edit that region directly; edit the `.jsx` first (it's the
+  canonical source), verify there with a `jsc` harness, THEN re-extract. The
+  boundary shifts whenever the slice's line count changes — don't assume the
+  old numbers still apply; re-find it (`grep -n "^// ══ ICONS" AI\ Files/rb-trick-gen-v3_05.jsx`,
+  the extraction ends the line before). Below the `NATIVE BRIDGE` marker:
+  `native*` wrapper functions (JSON string in → JSON string out) that port
+  the web App() handler logic verbatim, plus small post-processing helpers
+  (`__abbrevTrue`, `__abbrevBackside`, `__exitWording`) for iOS-only display
+  wording that layer on top of — and must be re-checked against — whatever
+  the engine slice emits.
 - `GrindEngine.swift` — JSContext holder; `callJSON("nativeX", payload)`.
 - `AppStore` (@Observable) — persists to UserDefaults under the web app's exact
   keys: `rbrg_filters`, `rbrg_landed`, `rbrg_working`, `rbrg_skipped`,
