@@ -31,7 +31,17 @@ const BASE = [
   { id:'torque_g',  name:'Torque',      fam:'groove', lead:'Torque',       trail:null,         bsLead:'BS Torque',    bsTrail:null },
   { id:'backslide', name:'Backslide',   fam:'groove', lead:null,           trail:'Backslide',  bsLead:null,           bsTrail:'BS Backslide' },
   { id:'tabernacle',name:'Tabernacle',  fam:'groove', lead:'Backslide',    trail:'BS Pudslide',bsLead:'BS Backslide', bsTrail:'Pudslide', def:false },
-  { id:'bynsoul',   name:'Byn Soul',    fam:'groove', lead:'Fastslide',    trail:'BS Torque',  bsLead:'BS Fastslide', bsTrail:'Torque', def:false },
+  // Byn Soul's own 4-slot plate table (forward / topside / AO-reversed /
+  // AO-reversed+topside) — confirmed with Jim; NOT derivable from a lead/
+  // trail swap the way real souls' AO plates are (see computeDisplay).
+  // Zero and Truespin land on the bsLead/bsTrail (or bsTopLead/bsTopTrail)
+  // pair too — they're landsFakie states just like AO. Inspin/Outspin land
+  // forward-facing (landsFakie false), so they use lead/trail or topLead/
+  // topTrail like the plain/topside states.
+  { id:'bynsoul',   name:'Byn Soul',    fam:'groove', lead:'Fastslide',    trail:'BS Torque',
+    topLead:'BS Pudslide', topTrail:'Torque',
+    bsLead:'BS Backslide', bsTrail:'Pudslide',
+    bsTopLead:'Backslide', bsTopTrail:'BS Pudslide', def:false },
   { id:'ufo',       name:'UFO',         fam:'groove', lead:'Fastslide',    trail:'Pudslide',   bsLead:'BS Fastslide', bsTrail:'BS Pudslide' },
   { id:'darkslide', name:'Darkslide',   fam:'groove', lead:'BS Backslide', trail:'Backslide',  bsLead:'Backslide',    bsTrail:'BS Backslide', def:false },
   { id:'wheelbarrow',name:'Wheelbarrow', fam:'groove', lead:'Wheel',        trail:'Backslide',  bsLead:'Wheel',        bsTrail:'BS Backslide', def:false },
@@ -67,8 +77,12 @@ const V3 = (() => {
   const AO_SYMMETRIC = new Set(['frontside','cabdriver']);
   const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false,noTrue:true},
     bynsoul:{rev:'topside',top:true}, wheelbarrow:{rev:'backside',top:false} };
+  // Byn Soul included: mechanically a groove, but its rotation/naming is
+  // fully soul-style (see the module-scope rotFam() used by the rest of
+  // the engine for the same idea outside this closure) — so it routes
+  // through nameWithFlags exactly like a real soul, no custom branch needed.
   const isSoul = id => ['soul','acid','torquesoul','mizu','pornstar','mistrial','makio',
-    'xgrind','teakettle','citric','hotdog','stubsoul','sidewalk'].includes(id);
+    'xgrind','teakettle','citric','hotdog','stubsoul','sidewalk','bynsoul'].includes(id);
 
   // alias resolver: peel topside then AO on miss, prefix peeled + mods
   // NOTE: `key()` builds the ALIAS LOOKUP key and always uses the full word
@@ -131,41 +145,11 @@ const V3 = (() => {
         const r = HYBRID[id];
         let core = base;
         const reversed = f.backside || f.ao;
-        // Byn Soul: mechanically a groove (locked via Backslide), named
-        // soul-style. Two independent base-lock axes:
-        //   approach — Soul | Topside (f.topside, shared with every other
-        //     topside pose — same detailed/compact split as Task 1)
-        //   direction — Forward | AO | Truespin. f.bynAway is Byn Soul's own
-        //     "away" reading (distinct from the generic soul `ao`/`backside`
-        //     flags this hybrid branch otherwise uses — those don't apply
-        //     here since Byn Soul never routes through the soul engine).
-        //     f.truespin is the new, Byn-Soul-only entry flag; when both are
-        //     rolled, truespin wins the word (it represents an added real
-        //     rotation on top of the same reversed landing, so it's the more
-        //     specific case — mirrors namedDir suppressing a bare AO
-        //     elsewhere in this file whenever a more specific word applies).
-        //   Word order: [AO|Tru] [Top] Byn Soul.
-        // Direction tag only on a CLEAN base-lock entry (inDeg===90, no real
-        // spin) — f.hasSpin, not namedDir: namedDir is only set true on a
-        // FAKIE spin (Task 2), so a forward non-fakie 270/450 has namedDir
-        // false but still needs the tag suppressed ("270 Byn Soul", not "270
-        // AO Byn Soul"). Topside is a fully independent axis — it always
-        // shows when f.topside is true, spin or no spin, fakie or not; it
-        // must never be gated by the same condition as the direction tag.
-        // (After Fix 1, f.bynAway/f.truespin are already guaranteed false on
-        // a fakie base-lock entry, so "Zero AO"/"Zero Tru" can't reach here
-        // either — no separate Zero-check needed.)
-        if(id==='bynsoul') {
-          const parts = [];
-          if(!f.hasSpin) {
-            if(f.truespin) parts.push(f.detailed ? 'Truespin' : 'Tru');
-            else if(f.bynAway) parts.push('AO');
-          }
-          if(f.topside) parts.push(f.detailed ? 'Topside' : 'Top');
-          parts.push('Byn Soul');
-          return parts.join(' ');
-        }
         // Tabernacle / Darkslide / Wheelbarrow: reversal → Backside X
+        // (Byn Soul used to be handled here too — it's soul-style now, see
+        // isSoul above, so it routes through nameWithFlags like a real soul
+        // instead. Still left in HYBRID below for validity()'s topside/
+        // negative gating, which is independent of naming dispatch.)
         if(reversed && r.rev==='backside') core = 'Backside '+core;
         return core;
       }
@@ -273,13 +257,22 @@ const validOutDeg = (fam, min, max) => {
 // generateTrick and enumerateVariants, which made "Topside Byn Soul" nameable but
 // unreachable/uncounted — fixed by sharing this single definition between them.
 const topEligible = (b) => (b.fam==='soul' && !b.noTop) || b.id==='bynsoul';
+// Rotation-family override: Byn Soul is mechanically a groove (stays listed
+// under Groove Tricks in the UI; BASE.fam is 'groove') but its ENTRY/EXIT
+// rotation and naming are fully soul-style — reusing the exact degree menu,
+// Zero/AO/Truespin/Inspin/Outspin naming, and exit math souls already have,
+// rather than re-deriving them by hand (which is how the last few rounds of
+// Byn Soul naming bugs happened). Every rotation-dispatch site — validInDeg/
+// validOutDeg, entryName's family check, landsFakie, _v3ao, the away-roll,
+// switch-up transitions — uses rotFam(base) instead of the raw base.fam.
+const rotFam = (b) => (b.fam==='soul' || b.id==='bynsoul') ? 'soul' : b.fam;
 function generateTrick(F) {
   const { spins:SP, sliders:SL } = F;
   const pool = BASE.filter(b => {
     if(F.tricks[b.id] === false) return false;
     if(b.gate && SL[b.gate] <= 0) return false;
     // drop the trick if its family has no valid entry degree in the In-spin range
-    if(validInDeg(b.fam, SP.inMin, SP.inMax).length === 0) return false;
+    if(validInDeg(rotFam(b), SP.inMin, SP.inMax).length === 0) return false;
     return true;
   });
   if(!pool.length) return null;
@@ -303,21 +296,21 @@ function generateTrick(F) {
   const scaledRoll = (slider, fEligible) => slider > 0 && roll(Math.min(100, slider / fEligible));
 
   const base = pick(pool);
-  const fam = base.fam;
+  // Rotation family: 'soul' for real souls AND Byn Soul (see rotFam) — this
+  // single line is what makes Byn Soul reuse the entire soul degree menu,
+  // Zero/AO/Truespin/Inspin/Outspin naming, and exit math below, with no
+  // custom gating code. (base.fam itself stays 'groove', untouched — that's
+  // what keeps Byn Soul under Groove Tricks in the UI.)
+  const fam = rotFam(base);
   const inDeg = pick(validInDeg(fam, SP.inMin, SP.inMax));
   const fakieIn = roll(SP.fakieIn);
-  // Byn Soul on a fakie entry: no away-flip, no truespin — the back foot is
-  // just Zero, full stop, feet and name both (there's no "Zero AO Byn Soul"
-  // or "Zero Tru Byn Soul"). Gated to bynsoul+fakieIn only; every other
-  // groove's away roll is untouched.
-  let away = fam==='soul' ? (SP.truespin ? Math.random()<0.5 : false)
-    : (base.id==='bynsoul' && fakieIn ? false : Math.random()<0.5);
-  // Byn Soul only: an independent soul-style Truespin roll, gated behind the
-  // same Truespin toggle a soul's away/AO roll uses (never rolls with the
-  // toggle off) AND excluded on a fakie entry (see away, above). Every other
-  // base gets a hardcoded false — see entryName's groove branch and
-  // nameCore's bynsoul branch for how this reads out.
-  let truespin = base.id==='bynsoul' && SP.truespin && !fakieIn ? Math.random()<0.5 : false;
+  // A single away roll serves double duty exactly like a real soul's: at a
+  // half-rotation (180/540) it's the AO-vs-Truespin switch; at inDeg=0
+  // (Zero) it's simply unread (entryName's soul branch never checks `away`
+  // there, and _v3ao's own !isZero guard already suppresses AO/Truespin
+  // regardless of what away rolled to) — so "Zero AO"/"Zero Tru" can't
+  // happen without any Byn-Soul-specific gating needed.
+  let away = fam==='soul' ? (SP.truespin ? Math.random()<0.5 : false) : Math.random()<0.5;
   let top = topEligible(base) && SL.topside>0 ? scaledRoll(SL.topside, fTop) : false;
   let neg = NEG_OK.has(base.id) && !base.noNeg && !top && SL.negative>0 ? scaledRoll(SL.negative, fNeg) : false;
   let rough=false, tough=false;
@@ -339,7 +332,7 @@ function generateTrick(F) {
   const outOpts = validOutDeg(fam, SP.outMin, SP.outMax);
   const outDeg = outOpts.length ? pick(outOpts) : 0;
   const rewind = outDeg>0 && SP.rewindOut>0 && roll(SP.rewindOut);
-  return { baseId:base.id, fam, entry:{inDeg,fakieIn,away,top,truespin}, mods:{neg,rough,tough,christ,antichrist,sw}, exit:{outDeg,rewind} };
+  return { baseId:base.id, fam, entry:{inDeg,fakieIn,away,top}, mods:{neg,rough,tough,christ,antichrist,sw}, exit:{outDeg,rewind} };
 }
 
 // Enumerate EVERY trick variant the generator can currently produce, mirroring the exact
@@ -353,7 +346,7 @@ function enumerateVariants(F) {
   const bases = BASE.filter(b => {
     if(F.tricks[b.id] === false) return false;
     if(b.gate && SL[b.gate] <= 0) return false;
-    if(validInDeg(b.fam, SP.inMin, SP.inMax).length === 0) return false;
+    if(validInDeg(rotFam(b), SP.inMin, SP.inMax).length === 0) return false;
     return true;
   });
   const opts = (cond) => cond ? [false, true] : [false];   // [absent] or [absent, present]
@@ -381,25 +374,19 @@ function enumerateVariants(F) {
     return o.length ? o : [0];
   };
   for(const base of bases) {
-    const fam = base.fam;
+    // Rotation family: 'soul' for real souls AND Byn Soul (see rotFam) — one
+    // line, same as generateTrick, so the enumerator can never drift out of
+    // sync with what the generator actually produces (the exact class of
+    // bug this project has hit before with Hide Landed).
+    const fam = rotFam(base);
     const inDegs = validInDeg(fam, SP.inMin, SP.inMax);
     const fakieOpts = opts(SP.fakieIn > 0);
+    const awayOpts = fam==='soul' ? (SP.truespin ? [false,true] : [false]) : [false,true];
     const topOpts = optsP(topEligible(base), SL.topside);
     for(const inDeg of inDegs)
-    for(const fakieIn of fakieOpts) {
-    // Byn Soul on a fakie entry: no away-flip, no truespin — mirrors
-    // generateTrick's gating exactly (Fix 1). Depends on fakieIn, so — unlike
-    // every other base, where awayOpts/truespinOpts are fakie-independent —
-    // these have to be recomputed inside the fakieIn loop for bynsoul, or the
-    // enumerator and generator disagree about which states exist (the exact
-    // class of bug this project has hit before with Hide Landed).
-    const bynFakieLock = base.id==='bynsoul' && fakieIn;
-    const awayOpts = fam==='soul' ? (SP.truespin ? [false,true] : [false])
-      : (bynFakieLock ? [false] : [false,true]);
-    const truespinOpts = base.id==='bynsoul' && SP.truespin && !bynFakieLock ? [false,true] : [false];
+    for(const fakieIn of fakieOpts)
     for(const away of awayOpts)
-    for(const top of topOpts)
-    for(const truespin of truespinOpts) {
+    for(const top of topOpts) {
       // negative: only when eligible and not topside
       const negOpts = optsP(NEG_OK.has(base.id) && !base.noNeg && !top, SL.negative);
       for(const neg of negOpts) {
@@ -414,11 +401,10 @@ function enumerateVariants(F) {
           for(const sw of optsP(true, SL.switch))
           for(const outDeg of outDegs(fam))
           for(const rewind of (outDeg>0 && SP.rewindOut>0 ? [false,true] : [false])) {
-            out.push({ baseId:base.id, fam, entry:{inDeg,fakieIn,away,top,truespin}, mods:{neg,rough,tough,christ,antichrist,sw}, exit:{outDeg,rewind} });
+            out.push({ baseId:base.id, fam, entry:{inDeg,fakieIn,away,top}, mods:{neg,rough,tough,christ,antichrist,sw}, exit:{outDeg,rewind} });
           }
         }
       }
-    }
     }
   }
   return out;
@@ -514,7 +500,10 @@ function computeDisplay(t, opts={}) {
   const { specialFirst=true, detailed=false, spellBackside=true } = opts;
   const base = BASE.find(b=>b.id===t.baseId);
   const { entry:e, mods:m, exit:x } = t;
-  const fam = base.fam;
+  // Rotation family: 'soul' for real souls AND Byn Soul (rotFam) — routes
+  // Byn Soul through the exact same entryName branch, exit math, and _v3ao
+  // computation real souls use below, no custom logic needed for any of it.
+  const fam = rotFam(base);
   const en = entryName(fam, e, detailed);
   const tags = [];
   if(e.top) tags.push('top');
@@ -523,7 +512,18 @@ function computeDisplay(t, opts={}) {
   const special = SPECIAL[tagKey] || null;
 
   let lead, trail;
-  if(e.top && base.topLead!==undefined) { lead=base.topLead; trail=base.topTrail; }
+  if(t.baseId==='bynsoul') {
+    // Byn Soul's own 4-slot plate table — NOT a lead/trail swap like real
+    // souls use below (its reversed-position plates are a genuinely
+    // different plate family — BS Backslide/Pudslide, not a reordering of
+    // Fastslide/BS Torque — confirmed by Jim), so it skips the generic
+    // landsFakie swap entirely and picks the already-correct pair directly.
+    if(e.top && en.landsFakie && base.bsTopLead!==undefined) { lead=base.bsTopLead; trail=base.bsTopTrail; }
+    else if(e.top && base.topLead!==undefined) { lead=base.topLead; trail=base.topTrail; }
+    else if(en.landsFakie && base.bsLead!==undefined) { lead=base.bsLead; trail=base.bsTrail; }
+    else { lead=base.lead; trail=base.trail; }
+  }
+  else if(e.top && base.topLead!==undefined) { lead=base.topLead; trail=base.topTrail; }
   else if(en.isBS && base.bsLead!==undefined) { lead=base.bsLead; trail=base.bsTrail; }
   else { lead=base.lead; trail=base.trail; }
   const sf = base.soulFoot;
@@ -543,7 +543,7 @@ function computeDisplay(t, opts={}) {
   // lead/trail relabel — same plate names, swapped positions — to show the feet as they
   // actually are when landed and grinding. Done AFTER modifier prefixes so Negative/
   // Rough/Tough land on the correct (soul) foot first, then the whole thing flips.
-  if(en.landsFakie) { const tmp = lead; lead = trail; trail = tmp; }
+  if(en.landsFakie && t.baseId!=='bynsoul') { const tmp = lead; lead = trail; trail = tmp; }
 
   let core = base.name, usedNeg=false;
   if(m.neg && base.negName) { core=base.negName; usedNeg=true; }
@@ -573,6 +573,11 @@ function computeDisplay(t, opts={}) {
   // V3 owns the grind-name CORE (base + AO/backside + topside + negative + rough/
   // tough + alias resolution). The app keeps wrapping the spin word, Switch, Christ/
   // Antichrist, and the exit suffix around it — decorations V3 doesn't model.
+  // fam is rotFam-resolved above, so this is the real soul formula for BOTH
+  // real souls and Byn Soul — landsFakie/isZero/namedDir already came out of
+  // entryName's soul branch for Byn Soul too, so AO is correctly suppressed
+  // at Zero and whenever a direction word (Truespin/Inspin/Outspin) already
+  // names it, with no Byn-Soul-specific flags needed here at all.
   const _v3ao = fam==='soul' ? (en.landsFakie && !en.isZero && !en.namedDir) : false;
   const _v3backside = fam==='groove' ? en.isBS : false;
   const v3Core = V3.name(t.baseId, {
@@ -580,14 +585,6 @@ function computeDisplay(t, opts={}) {
     negative:!!m.neg, rough:!!m.rough, tough:!!m.tough,
     christ:!!m.christ, antichrist:!!m.antichrist,
     detailed,
-    // Byn Soul only (see nameCore's bynsoul branch) — _v3ao is soul-only and
-    // always false for this groove-mechanical hybrid, so its own "AO" word
-    // needs its own reading of `away`. hasSpin (not namedDir — namedDir is
-    // only true on a FAKIE spin, Task 2) gates the whole base-lock tag
-    // whenever there's any real rotation, fakie or not, so a forward
-    // non-fakie 270/450 also drops it ("270 Byn Soul", not "270 AO Byn
-    // Soul"); Topside is intentionally NOT gated by this — it's independent.
-    bynAway: !!e.away, truespin: !!e.truespin, namedDir: en.namedDir, hasSpin: e.inDeg !== 90,
   });
   // If V3 returns a validity block (⚠ …) fall back to the old core so nothing breaks.
   const v3Valid = v3Core && !v3Core.startsWith('⚠');
@@ -992,20 +989,23 @@ const progFlatParents = (n) => [...new Set(n.parents.flat())];
 // node → canonical plain trick (verified: same sig as generator for this base+flags)
 function progNodeTrick(node) {
   const base = BASE.find(b => b.id === node.base);
-  const soul = base.fam === 'soul';
+  const soul = rotFam(base) === 'soul';   // true for real souls AND Byn Soul
   const f = node.flags || {};
   // a node may carry an explicit spin (e.g. AO tile at 180°); else it's the plain base pose
   const e = node.spin
     ? { inDeg: node.spin.inDeg, fakieIn: node.spin.fakieIn, away: node.spin.away, top: !!f.topside }
     : { inDeg: soul ? 0 : 90, fakieIn: false, away: soul ? false : !!f.backside, top: !!f.topside };
   return {
-    baseId: node.base, fam: base.fam,
+    baseId: node.base, fam: rotFam(base),
     entry: e,
     mods:  { neg:!!f.negative, rough:!!f.rough, tough:!!f.tough, christ:!!f.christ, antichrist:!!f.antichrist, sw:!!f.switch },
     exit:  { outDeg: 0, rewind: false },
   };
 }
 const progFam  = (node) => (BASE.find(b => b.id === node.base) || {}).fam;
+// rotation-family for drawer dispatch (Byn Soul reads as 'soul' here even though
+// progFam/tile-dot color stays 'groove' — see rotFam)
+const progRotFam = (node) => rotFam(BASE.find(b => b.id === node.base) || {});
 const progSig  = (node) => trickSignature(progNodeTrick(node));
 // tile/footer label — abbreviate "Backside"→"BS" (decision 6); sig is unaffected
 const progName = (node) => { const n = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:false }).main; return n === 'BS' ? 'Backside' : n; };
@@ -1186,7 +1186,7 @@ const GROOVE_SPINS = [
 ];
 function spinTrick(baseId, s, top=false) {
   const b = BASE.find(x => x.id === baseId);
-  return { baseId, fam:b.fam,
+  return { baseId, fam:rotFam(b),
     entry:{ inDeg:s.inDeg, fakieIn:s.fakieIn, away:s.away, top:!!top },
     mods:{ neg:false, rough:false, tough:false, christ:false, antichrist:false, sw:false },
     exit:{ outDeg:0, rewind:false } };
@@ -1204,24 +1204,19 @@ const spinsForNode = (node) => {
   if (node.spin) return [];
   let list;
   if (flags.topside) {                                                              // topside hub (chips rendered with top:true)
-    const set = progFam(node) === 'soul' ? SOUL_SPINS : GROOVE_SPINS;                // groove bases (Byn Soul) use groove spins
+    const set = progRotFam(node) === 'soul' ? SOUL_SPINS : GROOVE_SPINS;             // Byn Soul rotates soul-style -> soul spins, real grooves -> groove spins
     const hasAoTile = PROG_NODES.some(n => n.spin && n.base === node.base && n.flags && n.flags.topside);
     list = hasAoTile ? set.filter(s => s.key !== 'ao') : set;                        // AO promoted to its own tile (Kindgrind/Misfit/Cloudy Night) — no duplicate chip
   } else if (flags.backside) {
     list = GROOVE_SPINS.filter(s => s.facing === 'backside' && s.key !== 'right');   // backside hub (minus the plain Backside = the tile)
   } else if (Object.keys(flags).length) {
     list = [];
-  } else if (progFam(node) === 'soul') {
-    list = SOUL_SPINS;                                                               // base soul: all soul spins (AO included)
+  } else if (progRotFam(node) === 'soul') {
+    list = SOUL_SPINS;                                                               // base soul (incl. Byn Soul): all soul spins (AO included)
   } else {
     const hasBsTile = PROG_NODES.some(n => n.flags && n.flags.backside && n.base === node.base);
     list = hasBsTile ? GROOVE_SPINS.filter(s => s.facing === 'frontside') : GROOVE_SPINS; // base groove: frontside-facing if it has a Backside tile, else all
   }
-  // Byn Soul: a fakie entry excludes the away-flip (generateTrick's own rule —
-  // "Zero AO Byn Soul" isn't a real trick), so don't offer a chip for that
-  // combo either. Drops "Zero Backside" (zeroright) and the away=true Fakie
-  // 270 variant; every other groove's chip set is untouched.
-  if (node.base === 'bynsoul') list = list.filter(s => !(s.fakieIn && s.away));
   return list;
 };
 // is this node's drawer a topside hub? (chips need the topside pose)
@@ -1244,9 +1239,9 @@ const MOD_DEFS = [
 ];
 function modTrick(node, key) {
   const base = BASE.find(x => x.id === node.base);
-  const soul = base.fam === 'soul';
+  const soul = rotFam(base) === 'soul';
   const f = node.flags || {};
-  return { baseId: node.base, fam: base.fam,
+  return { baseId: node.base, fam: rotFam(base),
     entry:{ inDeg: soul ? 0 : 90, fakieIn:false, away: soul ? false : !!f.backside, top: !!f.topside },
     mods:{ neg:key==='neg', rough:key==='rough', tough:key==='tough', christ:key==='christ', antichrist:key==='antichrist', sw:key==='sw' },
     exit:{ outDeg:0, rewind:false } };
@@ -1279,6 +1274,7 @@ const fmtDate = (ts) => {
   if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
+
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
 // Everything above this line is byte-identical to rb-trick-gen-v3_05.jsx
