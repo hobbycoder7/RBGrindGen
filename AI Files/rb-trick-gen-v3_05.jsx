@@ -147,15 +147,22 @@ const V3 = (() => {
         //     specific case — mirrors namedDir suppressing a bare AO
         //     elsewhere in this file whenever a more specific word applies).
         //   Word order: [AO|Tru] [Top] Byn Soul.
-        // Real spin present (270/450) — entryName's own groove wording
-        // (degree + Fakie/Inspin/Outspin, Task 2) already carries the
-        // direction, so the base-lock positional tag is dropped entirely
-        // rather than stacking both ("270 Byn Soul", not "270 AO Byn Soul").
+        // Direction tag only on a CLEAN base-lock entry (inDeg===90, no real
+        // spin) — f.hasSpin, not namedDir: namedDir is only set true on a
+        // FAKIE spin (Task 2), so a forward non-fakie 270/450 has namedDir
+        // false but still needs the tag suppressed ("270 Byn Soul", not "270
+        // AO Byn Soul"). Topside is a fully independent axis — it always
+        // shows when f.topside is true, spin or no spin, fakie or not; it
+        // must never be gated by the same condition as the direction tag.
+        // (After Fix 1, f.bynAway/f.truespin are already guaranteed false on
+        // a fakie base-lock entry, so "Zero AO"/"Zero Tru" can't reach here
+        // either — no separate Zero-check needed.)
         if(id==='bynsoul') {
-          if(f.namedDir) return 'Byn Soul';
           const parts = [];
-          if(f.truespin) parts.push(f.detailed ? 'Truespin' : 'Tru');
-          else if(f.bynAway) parts.push('AO');
+          if(!f.hasSpin) {
+            if(f.truespin) parts.push(f.detailed ? 'Truespin' : 'Tru');
+            else if(f.bynAway) parts.push('AO');
+          }
           if(f.topside) parts.push(f.detailed ? 'Topside' : 'Top');
           parts.push('Byn Soul');
           return parts.join(' ');
@@ -301,12 +308,18 @@ function generateTrick(F) {
   const fam = base.fam;
   const inDeg = pick(validInDeg(fam, SP.inMin, SP.inMax));
   const fakieIn = roll(SP.fakieIn);
-  let away = fam==='soul' ? (SP.truespin ? Math.random()<0.5 : false) : Math.random()<0.5;
+  // Byn Soul on a fakie entry: no away-flip, no truespin — the back foot is
+  // just Zero, full stop, feet and name both (there's no "Zero AO Byn Soul"
+  // or "Zero Tru Byn Soul"). Gated to bynsoul+fakieIn only; every other
+  // groove's away roll is untouched.
+  let away = fam==='soul' ? (SP.truespin ? Math.random()<0.5 : false)
+    : (base.id==='bynsoul' && fakieIn ? false : Math.random()<0.5);
   // Byn Soul only: an independent soul-style Truespin roll, gated behind the
   // same Truespin toggle a soul's away/AO roll uses (never rolls with the
-  // toggle off). Every other base gets a hardcoded false — see entryName's
-  // groove branch and nameCore's bynsoul branch for how this reads out.
-  let truespin = base.id==='bynsoul' && SP.truespin ? Math.random()<0.5 : false;
+  // toggle off) AND excluded on a fakie entry (see away, above). Every other
+  // base gets a hardcoded false — see entryName's groove branch and
+  // nameCore's bynsoul branch for how this reads out.
+  let truespin = base.id==='bynsoul' && SP.truespin && !fakieIn ? Math.random()<0.5 : false;
   let top = topEligible(base) && SL.topside>0 ? scaledRoll(SL.topside, fTop) : false;
   let neg = NEG_OK.has(base.id) && !base.noNeg && !top && SL.negative>0 ? scaledRoll(SL.negative, fNeg) : false;
   let rough=false, tough=false;
@@ -373,13 +386,19 @@ function enumerateVariants(F) {
     const fam = base.fam;
     const inDegs = validInDeg(fam, SP.inMin, SP.inMax);
     const fakieOpts = opts(SP.fakieIn > 0);
-    const awayOpts = fam==='soul' ? (SP.truespin ? [false,true] : [false]) : [false,true];
     const topOpts = optsP(topEligible(base), SL.topside);
-    // Byn Soul only — mirrors awayOpts' soul-branch gating exactly (Truespin
-    // toggle off => only false is possible).
-    const truespinOpts = base.id==='bynsoul' && SP.truespin ? [false,true] : [false];
     for(const inDeg of inDegs)
-    for(const fakieIn of fakieOpts)
+    for(const fakieIn of fakieOpts) {
+    // Byn Soul on a fakie entry: no away-flip, no truespin — mirrors
+    // generateTrick's gating exactly (Fix 1). Depends on fakieIn, so — unlike
+    // every other base, where awayOpts/truespinOpts are fakie-independent —
+    // these have to be recomputed inside the fakieIn loop for bynsoul, or the
+    // enumerator and generator disagree about which states exist (the exact
+    // class of bug this project has hit before with Hide Landed).
+    const bynFakieLock = base.id==='bynsoul' && fakieIn;
+    const awayOpts = fam==='soul' ? (SP.truespin ? [false,true] : [false])
+      : (bynFakieLock ? [false] : [false,true]);
+    const truespinOpts = base.id==='bynsoul' && SP.truespin && !bynFakieLock ? [false,true] : [false];
     for(const away of awayOpts)
     for(const top of topOpts)
     for(const truespin of truespinOpts) {
@@ -401,6 +420,7 @@ function enumerateVariants(F) {
           }
         }
       }
+    }
     }
   }
   return out;
@@ -564,10 +584,12 @@ function computeDisplay(t, opts={}) {
     detailed,
     // Byn Soul only (see nameCore's bynsoul branch) — _v3ao is soul-only and
     // always false for this groove-mechanical hybrid, so its own "AO" word
-    // needs its own reading of `away`; namedDir suppresses the whole
-    // base-lock tag whenever entryName's real-spin wording already carries
-    // the direction (Task 2).
-    bynAway: !!e.away, truespin: !!e.truespin, namedDir: en.namedDir,
+    // needs its own reading of `away`. hasSpin (not namedDir — namedDir is
+    // only true on a FAKIE spin, Task 2) gates the whole base-lock tag
+    // whenever there's any real rotation, fakie or not, so a forward
+    // non-fakie 270/450 also drops it ("270 Byn Soul", not "270 AO Byn
+    // Soul"); Topside is intentionally NOT gated by this — it's independent.
+    bynAway: !!e.away, truespin: !!e.truespin, namedDir: en.namedDir, hasSpin: e.inDeg !== 90,
   });
   // If V3 returns a validity block (⚠ …) fall back to the old core so nothing breaks.
   const v3Valid = v3Core && !v3Core.startsWith('⚠');
