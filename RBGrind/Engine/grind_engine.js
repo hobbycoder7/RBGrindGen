@@ -1202,16 +1202,27 @@ const spinEntry = (baseId, s, top=false) => {
 const spinsForNode = (node) => {
   const flags = node.flags || {};
   if (node.spin) return [];
+  let list;
   if (flags.topside) {                                                              // topside hub (chips rendered with top:true)
     const set = progFam(node) === 'soul' ? SOUL_SPINS : GROOVE_SPINS;                // groove bases (Byn Soul) use groove spins
     const hasAoTile = PROG_NODES.some(n => n.spin && n.base === node.base && n.flags && n.flags.topside);
-    return hasAoTile ? set.filter(s => s.key !== 'ao') : set;                        // AO promoted to its own tile (Kindgrind/Misfit/Cloudy Night) — no duplicate chip
+    list = hasAoTile ? set.filter(s => s.key !== 'ao') : set;                        // AO promoted to its own tile (Kindgrind/Misfit/Cloudy Night) — no duplicate chip
+  } else if (flags.backside) {
+    list = GROOVE_SPINS.filter(s => s.facing === 'backside' && s.key !== 'right');   // backside hub (minus the plain Backside = the tile)
+  } else if (Object.keys(flags).length) {
+    list = [];
+  } else if (progFam(node) === 'soul') {
+    list = SOUL_SPINS;                                                               // base soul: all soul spins (AO included)
+  } else {
+    const hasBsTile = PROG_NODES.some(n => n.flags && n.flags.backside && n.base === node.base);
+    list = hasBsTile ? GROOVE_SPINS.filter(s => s.facing === 'frontside') : GROOVE_SPINS; // base groove: frontside-facing if it has a Backside tile, else all
   }
-  if (flags.backside) return GROOVE_SPINS.filter(s => s.facing === 'backside' && s.key !== 'right'); // backside hub (minus the plain Backside = the tile)
-  if (Object.keys(flags).length) return [];
-  if (progFam(node) === 'soul') return SOUL_SPINS;                                   // base soul: all soul spins (AO included)
-  const hasBsTile = PROG_NODES.some(n => n.flags && n.flags.backside && n.base === node.base);
-  return hasBsTile ? GROOVE_SPINS.filter(s => s.facing === 'frontside') : GROOVE_SPINS; // base groove: frontside-facing if it has a Backside tile, else all
+  // Byn Soul: a fakie entry excludes the away-flip (generateTrick's own rule —
+  // "Zero AO Byn Soul" isn't a real trick), so don't offer a chip for that
+  // combo either. Drops "Zero Backside" (zeroright) and the away=true Fakie
+  // 270 variant; every other groove's chip set is untouched.
+  if (node.base === 'bynsoul') list = list.filter(s => !(s.fakieIn && s.away));
+  return list;
 };
 // is this node's drawer a topside hub? (chips need the topside pose)
 const nodeDrawerTop = (node) => !!(node.flags && node.flags.topside);
@@ -1271,7 +1282,7 @@ const fmtDate = (ts) => {
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
 // Everything above this line is byte-identical to rb-trick-gen-v3_05.jsx
-// lines 3–1272. Everything below is the Swift↔JS boundary: each function
+// lines 3–1283. Everything below is the Swift↔JS boundary: each function
 // takes and returns JSON strings. Swift owns persistence and UI; this layer
 // owns engine calls AND the list-mutation invariants (landed/working/skipped
 // exclusivity), ported verbatim from the web App() handlers.
