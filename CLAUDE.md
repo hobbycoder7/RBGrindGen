@@ -10,8 +10,8 @@ implemented (Siri device voice test still pending a connected iPhone).
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1248 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v3_05.jsx` (source lines 3–1250, current as of
+- `RBGrind/Engine/grind_engine.js` — lines 1–1270 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v3_05.jsx` (source lines 3–1272, current as of
   v3.06). Never edit that region directly; edit the `.jsx` first (it's the
   canonical source), verify there with a `jsc` harness, THEN re-extract. The
   boundary shifts whenever the slice's line count changes — don't assume the
