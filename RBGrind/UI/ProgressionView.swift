@@ -120,6 +120,14 @@ struct ProgressionView: View {
                     }
                     .frame(width: tree.canvasW + 32, height: tree.canvasH, alignment: .topLeading)
                     .padding(.vertical, 20)
+                    // Tapping empty canvas closes an open drawer — same idea as
+                    // tapping the dimmed backdrop behind the Generator's Tricks/
+                    // Filter/Siri sheets. Tile buttons still claim their own taps
+                    // first (SwiftUI hit-tests the deepest view), so this only
+                    // ever fires on genuinely empty space and never blocks
+                    // jumping straight from one node's drawer to another.
+                    .contentShape(Rectangle())
+                    .onTapGesture { closeDrawer() }
                 }
                 .defaultScrollAnchor(.topLeading)
             } else {
@@ -128,6 +136,10 @@ struct ProgressionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.surface)
+    }
+
+    private func closeDrawer() {
+        if selection != nil { selection = nil }
     }
 
     private func edgeCanvas(_ tree: ProgTree) -> some View {
