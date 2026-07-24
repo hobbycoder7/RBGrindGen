@@ -17,19 +17,24 @@ struct ProgressionView: View {
     private func stateOf(_ id: String) -> String { state?.states[id] ?? "locked" }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            if state?.allDone == true {
-                completeBanner
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                header
+                if state?.allDone == true {
+                    completeBanner
+                }
+                legend
+                Divider().overlay(Theme.border)
+                treeMap
+                if let node = selectedNode {
+                    // Bounded so the drawer can never overflow past the screen edge
+                    // (SwiftUI doesn't auto-scroll an overflowing VStack) — the footer
+                    // itself scrolls internally past this budget instead.
+                    footer(node, maxHeight: geo.size.height * 0.62)
+                }
             }
-            legend
-            Divider().overlay(Theme.border)
-            treeMap
-            if let node = selectedNode {
-                footer(node)
-            }
+            .background(Theme.bg)
         }
-        .background(Theme.bg)
         .onAppear { refresh() }
         .onChange(of: store.landedJSON) { refresh() }
         .onChange(of: store.progSkipJSON) { refresh() }
@@ -238,12 +243,14 @@ struct ProgressionView: View {
 
     // MARK: detail footer
 
-    private func footer(_ node: ProgNode) -> some View {
+    private func footer(_ node: ProgNode, maxHeight: CGFloat) -> some View {
         let nodeState = stateOf(node.id)
         let stranded = store.progStranded(id: node.id)
         let hasKids = tree?.nodes.contains { $0.parentsFlat.contains(node.id) } ?? false
 
         return VStack(alignment: .leading, spacing: 0) {
+            // Pinned so the close button always stays reachable even when the
+            // scrollable content below is scrolled down.
             HStack(spacing: 9) {
                 Circle()
                     .fill(node.fam == "soul" ? Theme.accent : Theme.teal)
@@ -273,33 +280,38 @@ struct ProgressionView: View {
             }
             .padding(.bottom, 10)
 
-            HStack(spacing: 14) {
-                footLabel("Trail", node.legs.trail ?? "Grab/Freestyle")
-                footLabel("Lead", node.legs.lead ?? "Grab/Freestyle")
-            }
-            .padding(.bottom, 10)
-
-            if let url = URL(string: node.bog) {
-                Link(destination: url) {
-                    HStack(spacing: 5) {
-                        Text("Book of Grinds")
-                        Image(systemName: "arrow.up.right.square")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 14) {
+                        footLabel("Trail", node.legs.trail ?? "Grab/Freestyle")
+                        footLabel("Lead", node.legs.lead ?? "Grab/Freestyle")
                     }
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
+                    .padding(.bottom, 10)
+
+                    if let url = URL(string: node.bog) {
+                        Link(destination: url) {
+                            HStack(spacing: 5) {
+                                Text("Book of Grinds")
+                                Image(systemName: "arrow.up.right.square")
+                            }
+                            .font(.system(size: 12.5, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                        }
+                        .padding(.bottom, 12)
+                    }
+
+                    statusNote(node, nodeState: nodeState, stranded: stranded)
+
+                    actionButtons(node, nodeState: nodeState, stranded: stranded, hasKids: hasKids)
+
+                    drawers(node, nodeState: nodeState)
                 }
-                .padding(.bottom, 12)
             }
-
-            statusNote(node, nodeState: nodeState, stranded: stranded)
-
-            actionButtons(node, nodeState: nodeState, stranded: stranded, hasKids: hasKids)
-
-            drawers(node, nodeState: nodeState)
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
         .padding(.bottom, 16)
+        .frame(maxHeight: maxHeight)
         .background(Theme.bg)
         .overlay(alignment: .top) { Rectangle().fill(Theme.accent).frame(height: 2) }
     }
@@ -440,30 +452,30 @@ struct ProgressionView: View {
                     .italic()
                     .foregroundStyle(Theme.muted)
             } else {
-                ScrollView {
-                    ChipFlowLeadingLayout(spacing: 7) {
-                        ForEach(chips) { chip in
-                            Button {
-                                toggle(chip)
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(chip.landed ? Theme.white : Color(hex: 0xCFC7B6))
-                                        .frame(width: 7, height: 7)
-                                    Text(chip.name)
-                                        .font(.system(size: 12.5, weight: .semibold))
-                                        .foregroundStyle(chip.landed ? Theme.white : Theme.text)
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(chip.landed ? Theme.accent : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
-                                .overlay(RoundedRectangle(cornerRadius: 9).stroke(chip.landed ? Theme.accent : Theme.border, lineWidth: 1.5))
+                // No inner ScrollView here — the whole footer scrolls as one surface
+                // (see `footer`), so a nested scroll region would just fight that
+                // gesture instead of adding anything.
+                ChipFlowLeadingLayout(spacing: 7) {
+                    ForEach(chips) { chip in
+                        Button {
+                            toggle(chip)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(chip.landed ? Theme.white : Color(hex: 0xCFC7B6))
+                                    .frame(width: 7, height: 7)
+                                Text(chip.name)
+                                    .font(.system(size: 12.5, weight: .semibold))
+                                    .foregroundStyle(chip.landed ? Theme.white : Theme.text)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(chip.landed ? Theme.accent : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(chip.landed ? Theme.accent : Theme.border, lineWidth: 1.5))
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .frame(maxHeight: 126)
             }
         }
     }
