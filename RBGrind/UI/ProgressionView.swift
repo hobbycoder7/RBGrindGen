@@ -139,7 +139,8 @@ struct ProgressionView: View {
     }
 
     private func closeDrawer() {
-        if selection != nil { selection = nil }
+        guard selection != nil else { return }
+        withAnimation(.easeOut(duration: 0.08)) { selection = nil }
     }
 
     private func edgeCanvas(_ tree: ProgTree) -> some View {
@@ -199,8 +200,13 @@ struct ProgressionView: View {
 
         return VStack(spacing: 5) {
             Button {
-                selection = node.id
-                confirmSkip = false
+                // Same treatment as the Generator's "new trick" swap: a quick
+                // ease-out fade on the content that changes (see the drawer
+                // title's .id(node.id) below), not a fade of the whole footer.
+                withAnimation(.easeOut(duration: 0.08)) {
+                    selection = node.id
+                    confirmSkip = false
+                }
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12).fill(fill)
@@ -271,6 +277,8 @@ struct ProgressionView: View {
                     .font(.system(size: 19, weight: .heavy))
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
+                    .id(node.id)
+                    .transition(.opacity)
                 Text(nodeState.uppercased())
                     .font(.system(size: 10, weight: .medium))
                     .kerning(1)
@@ -280,8 +288,10 @@ struct ProgressionView: View {
                     .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
                 Spacer()
                 Button {
-                    selection = nil
-                    confirmSkip = false
+                    withAnimation(.easeOut(duration: 0.08)) {
+                        selection = nil
+                        confirmSkip = false
+                    }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .medium))
