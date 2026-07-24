@@ -7,8 +7,8 @@ const C = {
 };
 
 // ══ ENGINE (verified in isolation, 40/40 tests) ══════════════════════════════
-const NEG_OK = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','sidewalk']);
-const RT_OK  = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','xgrind','sidewalk']);
+const NEG_OK = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio']);
+const RT_OK  = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','xgrind']);
 
 const BASE = [
   { id:'soul',      name:'Soul',        fam:'soul', lead:'Fastslide',     trail:'Makio',          soulFoot:'trail', topLead:'BS Fastslide', topTrail:'Fishbrain' },
@@ -63,7 +63,7 @@ const V3 = (() => {
   const NAME = {
     soul:'Soul', acid:'Acid', torquesoul:'Torque Soul', mizu:'Mizu', pornstar:'Pornstar',
     mistrial:'Mistrial', makio:'Makio', xgrind:'X-Grind', teakettle:'Tea Kettle',
-    citric:'Citric Acid', hotdog:'Hot Dog', stubsoul:'Stub Soul', sidewalk:'Sidewalk',
+    hotdog:'Hot Dog', stubsoul:'Stub Soul',
     frontside:'Frontside', farv:'Full Torque', royale:'Royale', cabdriver:'Cab Driver',
     unity:'Unity', savannah:'Savannah', pudslide:'Pudslide', fastslide:'Fastslide',
     torque_g:'Torque', backslide:'Backslide', tabernacle:'Tabernacle', bynsoul:'Byn Soul',
@@ -74,17 +74,14 @@ const V3 = (() => {
     'Topside Makio':'Fishbrain','Topside Mizu':'Sweatstance',
     'AO Unity':'Savannah','AO Backside Unity':'Backside Savannah',
   };
-  const AO_PARTNER = { royale:'Full Torque', torque_g:'Backslide', fastslide:'Pudslide',
-    backslide:'Torque', pudslide:'Fastslide', farv:'Royale' };
-  const AO_SYMMETRIC = new Set(['frontside','cabdriver']);
-  const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false,noTrue:true},
+  const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false},
     bynsoul:{rev:'topside',top:true}, wheelbarrow:{rev:'backside',top:false} };
   // Byn Soul included: mechanically a groove, but its rotation/naming is
   // fully soul-style (see the module-scope rotFam() used by the rest of
   // the engine for the same idea outside this closure) — so it routes
   // through nameWithFlags exactly like a real soul, no custom branch needed.
   const isSoul = id => ['soul','acid','torquesoul','mizu','pornstar','mistrial','makio',
-    'xgrind','teakettle','citric','hotdog','stubsoul','sidewalk','bynsoul'].includes(id);
+    'xgrind','teakettle','hotdog','stubsoul','bynsoul'].includes(id);
 
   // alias resolver: peel topside then AO on miss, prefix peeled + mods
   // NOTE: `key()` builds the ALIAS LOOKUP key and always uses the full word
@@ -156,7 +153,6 @@ const V3 = (() => {
         return core;
       }
       // pure groove: backside is an orientation prefix (or a special BS name).
-      // AO handled by partner table only when NOT backside (rare in practice).
       let core = base;
       // special backside names: BS Frontside → "Backside"; Unity → "Backside Unity"
       const BS_SPECIAL = { frontside:'Backside', unity:'Backside Unity', savannah:'Backside Savannah' };
@@ -164,8 +160,8 @@ const V3 = (() => {
         core = BS_SPECIAL[id] || ('Backside '+base);
         return core;
       }
-      // forward groove, no backside: just the base (AO-partner naming only applies
-      // to true reverse-travel, which the app expresses via `away`/BS, so bare here)
+      // forward groove, no backside: just the base (grooves don't take a bare AO
+      // word — reverse travel is expressed via `away`/BS, handled above)
       return core;
     }
     return nameWithFlags(base,f);
@@ -188,11 +184,9 @@ const BOG_LINKS = {
   mistrial: BOG_BASE+'07.0_Mistrial.html',
   makio: BOG_BASE+'01.0_Makio.html',
   xgrind: BOG_BASE+'06.0_X_Grind.html',
-  citric: BOG_BASE+'05.1_Citric_Acid.html',
   teakettle: BOG_BASE+'13.0_Tea_Kettle.html',
   hotdog: BOG_BASE+'11.0_Hot_Dog.html',
   stubsoul: BOG_BASE+'10.0_Stub_Soul.html',
-  sidewalk: BOG_BASE+'04.1_Sidewalk.html',
   // Groove grinds
   frontside: BOG_BASE+'01.0_Frontside.html',
   farv: BOG_BASE+'04.0_Full_Torque.html',
@@ -461,9 +455,9 @@ function entryName(fam, e, detailed) {
     // information beyond the degree). A forward (non-fakie) spin's direction
     // is unambiguous from degree + BS alone, so it stays bare: "270 Royale",
     // not "270 Outspin Royale". namedDir mirrors the soul branch's own flag
-    // (set whenever a direction word is pushed) — wired here for Byn Soul's
-    // spin-suppression logic to reuse. BS is kept separately below (backside
-    // is a distinct property).
+    // (set whenever a direction word is pushed) to keep the returned struct
+    // uniform across families. BS is kept separately below (backside is a
+    // distinct property).
     if(e.inDeg !== 90 && e.fakieIn) { parts.push(e.away ? 'Outspin' : 'Inspin'); namedDir = true; }
     // Backside is the LANDED facing, not just the stored `away` flag. A groove's base
     // lock is 90 (frontside); every extra 180 of entry rotation flips FS<->BS. So a
@@ -683,17 +677,13 @@ function trickSignature(t) {
 }
 
 // ══ SWITCH-UP CHAINS ═════════════════════════════════════════════════════════
-// A switch-up links 2–3 grinds on one obstacle. Model: { tricks:[t1,t2,...],
-// transitions:[tr1,...] } where transitions[i] describes the spin INTO tricks[i+1].
-// Only the LAST grind carries an exit (the landing).
-//
-// FACING PROPAGATION: the key to correct AO/Truespin naming. We walk the chain
-// front-to-back tracking current facing (forward/fakie). Each grind's ENTRY is
-// derived from (inherited facing) + (transition direction: toward=AO / away=blind)
-// + (transition degree). We then let the normal computeDisplay name each grind —
-// so AO, Truespin, half-cab, and SPECIAL renames (Soyale, Kindgrind…) all fall
-// out of the existing engine, including the fakie-reverses-the-convention rule
-// (a 180 toward the obstacle reads AO when forward, but flips when already fakie).
+// A switch-up links two grinds on one obstacle. Model: { tricks:[t1,t2],
+// transitions:[tr1] } where transitions[0] describes the spin INTO tricks[1].
+// Only the LAST grind carries an exit (the landing). Per the positions-and-
+// rotations model (see generateChain), grind 2's entry encodes the transition
+// alone — no facing is carried over from grind 1 — and the normal
+// computeDisplay names each grind, so AO/Truespin and SPECIAL renames
+// (Soyale, Kindgrind…) all fall out of the existing engine.
 //
 // A soul ridden AO keeps the SAME souling foot (only orientation reverses) — so
 // no plate data changes; the entry flags carry the whole story. Grooves don't
@@ -783,7 +773,6 @@ function chainCoreName(t, specialFirst, detailed) {
   return { main:core.main, lead:core.lead, trail:core.trail, specialName:core.specialName, baseId:t.baseId };
 }
 
-// Final landing direction. Accumulate REAL rotation family-aware: each groove grind's
 // Final landing direction for a DOUBLE. Sum grind 1's approach facing + each grind's
 // real rotation + grind 2's exit spin. Groove grinds lock in at 90° for free (the 90
 // doesn't rotate you), so a groove contributes (inDeg-90); souls contribute inDeg
@@ -1009,8 +998,9 @@ const progFam  = (node) => (BASE.find(b => b.id === node.base) || {}).fam;
 // progFam/tile-dot color stays 'groove' — see rotFam)
 const progRotFam = (node) => rotFam(BASE.find(b => b.id === node.base) || {});
 const progSig  = (node) => trickSignature(progNodeTrick(node));
-// tile/footer label — abbreviate "Backside"→"BS" (decision 6); sig is unaffected
-const progName = (node) => { const n = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:false }).main; return n === 'BS' ? 'Backside' : n; };
+// tile/footer label — abbreviate "Backside"→"BS" (decision 6); sig is unaffected.
+// (computeDisplay's abbreviator already keeps a whole-name "Backside" spelled out.)
+const progName = (node) => computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:false }).main;
 const progBog  = (node) => { const d = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false }); return bogLink(node.base, d.specialName); };
 // lead/trail foot positions for the detail footer (helps beginners see what each foot does)
 const progLegs = (node) => { const d = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:true }); return { lead: d.lead, trail: d.trail }; };
@@ -1278,8 +1268,6 @@ const fmtDate = (ts) => {
 };
 
 // ══ ICONS ════════════════════════════════════════════════════════════════════
-const IconEye = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
-const IconEyeOff = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>);
 const IconFilter = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="currentColor"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="currentColor"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="10" cy="18" r="2" fill="currentColor" stroke="currentColor"/></svg>);
 const IconGrid = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>);
 const IconClose = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
@@ -1306,7 +1294,6 @@ export default function App() {
   const [prevView, setPrevView] = useState(null);   // { trick, chain } snapshot for goBack (handles both singles and switch-ups)
   const [animKey, setAnimKey] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [showDetail, setShowDetail] = useState(true);
   const [exitDetailed, setExitDetailed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetPage, setSheetPage] = useState(0); // 0=tricks, 1=filters
@@ -1746,7 +1733,7 @@ export default function App() {
   const copyDebug = async () => {
     const offTricks = BASE.filter(b => filters.tricks[b.id]===false).map(b=>b.id);
     const dbg = {
-      version: 'rbgrind-derived-3.06',
+      version: 'rbgrind-derived-4.0',
       currentTrick: trick || null,
       computedDisplay: trickDisplay || null,
       exitDetailed,
@@ -1940,7 +1927,7 @@ export default function App() {
     const selNode = progSel ? PROG_BY_ID[progSel] : null;
     const selState = selNode ? progStateOf(selNode, progLandedIds, progSkipSet) : null;
     const selStrand = selNode ? progStrandedBy(PROG_NODES, progLandedIds, progSkipSet, selNode.id) : 0;
-    const selHasKids = selNode ? PROG_NODES.some(n => n.parents.includes(selNode.id)) : false;
+    const selHasKids = selNode ? PROG_NODES.some(n => progFlatParents(n).includes(selNode.id)) : false;
     const glyphOf = (n) => PROG_GLYPHS[n.id];
     const edges = [];
     PROG_NODES.forEach(n => progFlatParents(n).forEach(p => {
@@ -2246,20 +2233,18 @@ export default function App() {
                 Detail
               </button>
             </div>
-            {showDetail && (
-              <div style={{ display:'flex', flexDirection:'column', gap:14, alignItems:'stretch', width:'100%', maxWidth:320, margin:'0 auto' }}>
-                {chainDisplay.legs.map((leg,i) => (
-                  <div key={i} style={{ background:C.surface, borderRadius:12, padding:'11px 14px' }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6 }}>
-                      <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:C.muted }}>{leg.label}</span>
-                      <a href={bogLink(leg.baseId, leg.specialName)} target="_blank" rel="noopener noreferrer" style={{ fontSize:9, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:C.muted, display:'inline-flex', alignItems:'center', gap:4, textDecoration:'none', opacity:0.8 }}>BoG <IconExternal/></a>
-                    </div>
-                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, fontWeight:900, textTransform:'uppercase', letterSpacing:'-0.01em', lineHeight:1.1, marginBottom:5 }}>{leg.name}</div>
-                    <div style={{ fontSize:12, color:C.muted, fontWeight:500 }}>{`Trail: ${leg.trail||'Grab/Freestyle'}  ·  Lead: ${leg.lead||'Grab/Freestyle'}`}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:14, alignItems:'stretch', width:'100%', maxWidth:320, margin:'0 auto' }}>
+              {chainDisplay.legs.map((leg,i) => (
+                <div key={i} style={{ background:C.surface, borderRadius:12, padding:'11px 14px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:C.muted }}>{leg.label}</span>
+                    <a href={bogLink(leg.baseId, leg.specialName)} target="_blank" rel="noopener noreferrer" style={{ fontSize:9, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', color:C.muted, display:'inline-flex', alignItems:'center', gap:4, textDecoration:'none', opacity:0.8 }}>BoG <IconExternal/></a>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, fontWeight:900, textTransform:'uppercase', letterSpacing:'-0.01em', lineHeight:1.1, marginBottom:5 }}>{leg.name}</div>
+                  <div style={{ fontSize:12, color:C.muted, fontWeight:500 }}>{`Trail: ${leg.trail||'Grab/Freestyle'}  ·  Lead: ${leg.lead||'Grab/Freestyle'}`}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : trick && trickDisplay ? (
           <div key={animKey} style={{ animation:'trickIn 0.08s ease forwards', width:'100%' }}>
@@ -2281,17 +2266,15 @@ export default function App() {
                 Detail
               </button>
             </div>
-            {showDetail && (
-              <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
-                {[{label:'Apch',val: trick.entry.fakieIn ? 'Fakie' : 'Forward'},{label:'Trail',val:trickDisplay.trail},{label:'Lead',val:trickDisplay.lead}].map(row => (
-                  <div key={row.label} style={{ display:'flex', alignItems:'center', gap:16 }}>
-                    <span style={{ fontSize:10, fontWeight:600, letterSpacing:'0.14em', color:C.muted, textTransform:'uppercase', width:34, textAlign:'right' }}>{row.label}</span>
-                    <span style={{ width:1, height:12, background:C.border, flexShrink:0 }}/>
-                    <span style={{ fontSize:15, fontWeight:500, color:C.text, textAlign:'left', minWidth:90 }}>{row.val||(row.label==='Apch'?'—':'Grab/Freestyle')}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
+              {[{label:'Apch',val: trick.entry.fakieIn ? 'Fakie' : 'Forward'},{label:'Trail',val:trickDisplay.trail},{label:'Lead',val:trickDisplay.lead}].map(row => (
+                <div key={row.label} style={{ display:'flex', alignItems:'center', gap:16 }}>
+                  <span style={{ fontSize:10, fontWeight:600, letterSpacing:'0.14em', color:C.muted, textTransform:'uppercase', width:34, textAlign:'right' }}>{row.label}</span>
+                  <span style={{ width:1, height:12, background:C.border, flexShrink:0 }}/>
+                  <span style={{ fontSize:15, fontWeight:500, color:C.text, textAlign:'left', minWidth:90 }}>{row.val||(row.label==='Apch'?'—':'Grab/Freestyle')}</span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div style={{ animation:'fadeIn 0.5s ease forwards', color:C.muted, paddingTop:80 }}>

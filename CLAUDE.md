@@ -10,12 +10,12 @@ implemented (Siri device voice test still pending a connected iPhone).
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1277 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v3_05.jsx` (source lines 3–1279, current as of
-  v3.06). Never edit that region directly; edit the `.jsx` first (it's the
+- `RBGrind/Engine/grind_engine.js` — lines 1–1267 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1269, current as of
+  v4.0). Never edit that region directly; edit the `.jsx` first (it's the
   canonical source), verify there with a `jsc` harness, THEN re-extract. The
   boundary shifts whenever the slice's line count changes — don't assume the
-  old numbers still apply; re-find it (`grep -n "^// ══ ICONS" AI\ Files/rb-trick-gen-v3_05.jsx`,
+  old numbers still apply; re-find it (`grep -n "^// ══ ICONS" AI\ Files/rb-trick-gen-v4.jsx`,
   the extraction ends the line before). Below the `NATIVE BRIDGE` marker:
   `native*` wrapper functions (JSON string in → JSON string out) that port
   the web App() handler logic verbatim, plus small post-processing helpers

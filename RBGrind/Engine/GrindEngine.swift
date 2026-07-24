@@ -3,8 +3,9 @@ import JavaScriptCore
 
 /// Swift↔JS bridge to the verified trick engine.
 ///
-/// `grind_engine.js` is the untouched logic slice of the web app (lines 3–1202
-/// of rb-trick-gen-v3_05.jsx) plus a `native*` wrapper layer. Every call across
+/// `grind_engine.js` is the untouched logic slice of the web app (see CLAUDE.md
+/// for the current line range of rb-trick-gen-v4.jsx) plus a `native*` wrapper
+/// layer. Every call across
 /// the boundary is a JSON string in → JSON string out, so Swift never pokes at
 /// JS internals directly.
 final class GrindEngine {

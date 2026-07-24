@@ -5,8 +5,8 @@ const C = {
 };
 
 // ══ ENGINE (verified in isolation, 40/40 tests) ══════════════════════════════
-const NEG_OK = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','sidewalk']);
-const RT_OK  = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','xgrind','sidewalk']);
+const NEG_OK = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio']);
+const RT_OK  = new Set(['soul','acid','torquesoul','mizu','pornstar','mistrial','makio','xgrind']);
 
 const BASE = [
   { id:'soul',      name:'Soul',        fam:'soul', lead:'Fastslide',     trail:'Makio',          soulFoot:'trail', topLead:'BS Fastslide', topTrail:'Fishbrain' },
@@ -61,7 +61,7 @@ const V3 = (() => {
   const NAME = {
     soul:'Soul', acid:'Acid', torquesoul:'Torque Soul', mizu:'Mizu', pornstar:'Pornstar',
     mistrial:'Mistrial', makio:'Makio', xgrind:'X-Grind', teakettle:'Tea Kettle',
-    citric:'Citric Acid', hotdog:'Hot Dog', stubsoul:'Stub Soul', sidewalk:'Sidewalk',
+    hotdog:'Hot Dog', stubsoul:'Stub Soul',
     frontside:'Frontside', farv:'Full Torque', royale:'Royale', cabdriver:'Cab Driver',
     unity:'Unity', savannah:'Savannah', pudslide:'Pudslide', fastslide:'Fastslide',
     torque_g:'Torque', backslide:'Backslide', tabernacle:'Tabernacle', bynsoul:'Byn Soul',
@@ -72,17 +72,14 @@ const V3 = (() => {
     'Topside Makio':'Fishbrain','Topside Mizu':'Sweatstance',
     'AO Unity':'Savannah','AO Backside Unity':'Backside Savannah',
   };
-  const AO_PARTNER = { royale:'Full Torque', torque_g:'Backslide', fastslide:'Pudslide',
-    backslide:'Torque', pudslide:'Fastslide', farv:'Royale' };
-  const AO_SYMMETRIC = new Set(['frontside','cabdriver']);
-  const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false,noTrue:true},
+  const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false},
     bynsoul:{rev:'topside',top:true}, wheelbarrow:{rev:'backside',top:false} };
   // Byn Soul included: mechanically a groove, but its rotation/naming is
   // fully soul-style (see the module-scope rotFam() used by the rest of
   // the engine for the same idea outside this closure) — so it routes
   // through nameWithFlags exactly like a real soul, no custom branch needed.
   const isSoul = id => ['soul','acid','torquesoul','mizu','pornstar','mistrial','makio',
-    'xgrind','teakettle','citric','hotdog','stubsoul','sidewalk','bynsoul'].includes(id);
+    'xgrind','teakettle','hotdog','stubsoul','bynsoul'].includes(id);
 
   // alias resolver: peel topside then AO on miss, prefix peeled + mods
   // NOTE: `key()` builds the ALIAS LOOKUP key and always uses the full word
@@ -154,7 +151,6 @@ const V3 = (() => {
         return core;
       }
       // pure groove: backside is an orientation prefix (or a special BS name).
-      // AO handled by partner table only when NOT backside (rare in practice).
       let core = base;
       // special backside names: BS Frontside → "Backside"; Unity → "Backside Unity"
       const BS_SPECIAL = { frontside:'Backside', unity:'Backside Unity', savannah:'Backside Savannah' };
@@ -162,8 +158,8 @@ const V3 = (() => {
         core = BS_SPECIAL[id] || ('Backside '+base);
         return core;
       }
-      // forward groove, no backside: just the base (AO-partner naming only applies
-      // to true reverse-travel, which the app expresses via `away`/BS, so bare here)
+      // forward groove, no backside: just the base (grooves don't take a bare AO
+      // word — reverse travel is expressed via `away`/BS, handled above)
       return core;
     }
     return nameWithFlags(base,f);
@@ -186,11 +182,9 @@ const BOG_LINKS = {
   mistrial: BOG_BASE+'07.0_Mistrial.html',
   makio: BOG_BASE+'01.0_Makio.html',
   xgrind: BOG_BASE+'06.0_X_Grind.html',
-  citric: BOG_BASE+'05.1_Citric_Acid.html',
   teakettle: BOG_BASE+'13.0_Tea_Kettle.html',
   hotdog: BOG_BASE+'11.0_Hot_Dog.html',
   stubsoul: BOG_BASE+'10.0_Stub_Soul.html',
-  sidewalk: BOG_BASE+'04.1_Sidewalk.html',
   // Groove grinds
   frontside: BOG_BASE+'01.0_Frontside.html',
   farv: BOG_BASE+'04.0_Full_Torque.html',
@@ -459,9 +453,9 @@ function entryName(fam, e, detailed) {
     // information beyond the degree). A forward (non-fakie) spin's direction
     // is unambiguous from degree + BS alone, so it stays bare: "270 Royale",
     // not "270 Outspin Royale". namedDir mirrors the soul branch's own flag
-    // (set whenever a direction word is pushed) — wired here for Byn Soul's
-    // spin-suppression logic to reuse. BS is kept separately below (backside
-    // is a distinct property).
+    // (set whenever a direction word is pushed) to keep the returned struct
+    // uniform across families. BS is kept separately below (backside is a
+    // distinct property).
     if(e.inDeg !== 90 && e.fakieIn) { parts.push(e.away ? 'Outspin' : 'Inspin'); namedDir = true; }
     // Backside is the LANDED facing, not just the stored `away` flag. A groove's base
     // lock is 90 (frontside); every extra 180 of entry rotation flips FS<->BS. So a
@@ -681,17 +675,13 @@ function trickSignature(t) {
 }
 
 // ══ SWITCH-UP CHAINS ═════════════════════════════════════════════════════════
-// A switch-up links 2–3 grinds on one obstacle. Model: { tricks:[t1,t2,...],
-// transitions:[tr1,...] } where transitions[i] describes the spin INTO tricks[i+1].
-// Only the LAST grind carries an exit (the landing).
-//
-// FACING PROPAGATION: the key to correct AO/Truespin naming. We walk the chain
-// front-to-back tracking current facing (forward/fakie). Each grind's ENTRY is
-// derived from (inherited facing) + (transition direction: toward=AO / away=blind)
-// + (transition degree). We then let the normal computeDisplay name each grind —
-// so AO, Truespin, half-cab, and SPECIAL renames (Soyale, Kindgrind…) all fall
-// out of the existing engine, including the fakie-reverses-the-convention rule
-// (a 180 toward the obstacle reads AO when forward, but flips when already fakie).
+// A switch-up links two grinds on one obstacle. Model: { tricks:[t1,t2],
+// transitions:[tr1] } where transitions[0] describes the spin INTO tricks[1].
+// Only the LAST grind carries an exit (the landing). Per the positions-and-
+// rotations model (see generateChain), grind 2's entry encodes the transition
+// alone — no facing is carried over from grind 1 — and the normal
+// computeDisplay names each grind, so AO/Truespin and SPECIAL renames
+// (Soyale, Kindgrind…) all fall out of the existing engine.
 //
 // A soul ridden AO keeps the SAME souling foot (only orientation reverses) — so
 // no plate data changes; the entry flags carry the whole story. Grooves don't
@@ -781,7 +771,6 @@ function chainCoreName(t, specialFirst, detailed) {
   return { main:core.main, lead:core.lead, trail:core.trail, specialName:core.specialName, baseId:t.baseId };
 }
 
-// Final landing direction. Accumulate REAL rotation family-aware: each groove grind's
 // Final landing direction for a DOUBLE. Sum grind 1's approach facing + each grind's
 // real rotation + grind 2's exit spin. Groove grinds lock in at 90° for free (the 90
 // doesn't rotate you), so a groove contributes (inDeg-90); souls contribute inDeg
@@ -1007,8 +996,9 @@ const progFam  = (node) => (BASE.find(b => b.id === node.base) || {}).fam;
 // progFam/tile-dot color stays 'groove' — see rotFam)
 const progRotFam = (node) => rotFam(BASE.find(b => b.id === node.base) || {});
 const progSig  = (node) => trickSignature(progNodeTrick(node));
-// tile/footer label — abbreviate "Backside"→"BS" (decision 6); sig is unaffected
-const progName = (node) => { const n = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:false }).main; return n === 'BS' ? 'Backside' : n; };
+// tile/footer label — abbreviate "Backside"→"BS" (decision 6); sig is unaffected.
+// (computeDisplay's abbreviator already keeps a whole-name "Backside" spelled out.)
+const progName = (node) => computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:false }).main;
 const progBog  = (node) => { const d = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false }); return bogLink(node.base, d.specialName); };
 // lead/trail foot positions for the detail footer (helps beginners see what each foot does)
 const progLegs = (node) => { const d = computeDisplay(progNodeTrick(node), { specialFirst:true, detailed:false, spellBackside:true }); return { lead: d.lead, trail: d.trail }; };
@@ -1277,8 +1267,8 @@ const fmtDate = (ts) => {
 
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
-// Everything above this line is byte-identical to rb-trick-gen-v3_05.jsx
-// lines 3–1283. Everything below is the Swift↔JS boundary: each function
+// Everything above this line is byte-identical to rb-trick-gen-v4.jsx
+// lines 3–1269. Everything below is the Swift↔JS boundary: each function
 // takes and returns JSON strings. Swift owns persistence and UI; this layer
 // owns engine calls AND the list-mutation invariants (landed/working/skipped
 // exclusivity), ported verbatim from the web App() handlers.
@@ -1376,12 +1366,15 @@ function nativeGenerate(payloadJSON) {
   const currentSig = P.currentSig || null;
   const extraSkipSig = P.extraSkipSig || null;
 
-  // "any base enabled?" guard (non-drill only)
+  // "any base enabled?" guard (non-drill only). rotFam, not raw fam — must
+  // judge each base by the same degree menu generateTrick's own pool filter
+  // uses (Byn Soul rotates soul-style), or the guard and the generator
+  // disagree about whether the pool is empty.
   if (!filters.workOnly && !filters.practice) {
     const enabled = BASE.filter(b => {
       if (filters.tricks[b.id] === false) return false;
       if (b.gate && filters.sliders[b.gate] <= 0) return false;
-      if (validInDeg(b.fam, filters.spins.inMin, filters.spins.inMax).length === 0) return false;
+      if (validInDeg(rotFam(b), filters.spins.inMin, filters.spins.inMax).length === 0) return false;
       return true;
     });
     if (!enabled.length) return JSON.stringify({ status: 'empty', emptyKey: 'disabled' });
@@ -1450,12 +1443,6 @@ function nativeGenerate(payloadJSON) {
   }
   if (!t) return JSON.stringify({ status: 'empty', emptyKey: 'complete' });
   return __result(t, null, filters);
-}
-
-// re-display an existing result (detail toggle / specialFirst change re-render)
-function nativeRedisplay(payloadJSON) {
-  const P = __parse(payloadJSON, {});
-  return __result(P.trick || null, P.chain || null, P.filters);
 }
 
 // ── generator list actions — mirror toggleLanded/toggleWorking/skipTrick ─────
@@ -1612,10 +1599,6 @@ function nativeProgAction(payloadJSON) {
   }
   return JSON.stringify({ landed, working, skipped, progSkip });
 }
-
-// ── theme + misc ──────────────────────────────────────────────────────────────
-function nativeTheme() { return JSON.stringify({ colors: C }); }
-function nativeNameFontSize(name) { return parseInt(nameFontSize(name || ''), 10); }
 
 // ── self-test — Phase 1 milestone evidence + regression harness ──────────────
 function nativeSelfTest() {

@@ -38,7 +38,7 @@ reads whatever's currently saved and generates against it. Set your mode once in
 the app; it's hands-free from there until you change it again.
 
 ## What to attach / have present
-**`rb-trick-gen-v3_05.jsx`** — the full app file, not the trimmed Val Town
+**`rb-trick-gen-v4.jsx`** (formerly `rb-trick-gen-v3_05.jsx`) — the full app file, not the trimmed Val Town
 extraction. This build needs more than the Val Town version had:
 - `BASE`, `generateTrick`, `computeDisplay`, `enumerateVariants`, `trickSignature`
   — the Generator engine (Val Town had this part).
