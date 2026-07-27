@@ -46,7 +46,13 @@ const BASE = [
     bsTopLead:'Backslide', bsTopTrail:'BS Pudslide', def:false },
   { id:'ufo',       name:'UFO',         fam:'groove', lead:'Fastslide',    trail:'Pudslide',   bsLead:'BS Fastslide', bsTrail:'BS Pudslide' },
   { id:'darkslide', name:'Darkslide',   fam:'groove', lead:'BS Backslide', trail:'Backslide',  bsLead:'Backslide',    bsTrail:'BS Backslide', def:false },
-  { id:'wheelbarrow',name:'Wheelbarrow', fam:'groove', lead:'Wheel',        trail:'Backslide',  bsLead:'Wheel',        bsTrail:'BS Backslide', def:false },
+  // Front-foot plate is 'Heel Roll' (Jim), matching the "<orientation> Roll"
+  // wording Nine Bar introduced below. NOTE: the plate word is part of
+  // trickSignature ([name, lead, trail]), so this rename retires every stored
+  // "Wheel" signature — pre-existing landed/working/skipped Wheelbarrow entries
+  // stop matching and revert to unmarked. Accepted deliberately (Jim) rather
+  // than carrying a sig-migration for it.
+  { id:'wheelbarrow',name:'Wheelbarrow', fam:'groove', lead:'Heel Roll',    trail:'Backslide',  bsLead:'Heel Roll',    bsTrail:'BS Backslide', def:false },
   // Nine Bar (a.k.a. "line bar", popular mid/late-90s): back foot in the
   // backslide plate, front foot in an ALLEY-OOP toe roll. Shares Wheelbarrow's
   // trail plate; the front foot is the whole difference, so it gets its own
