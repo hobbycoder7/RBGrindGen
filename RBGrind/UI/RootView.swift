@@ -34,6 +34,12 @@ struct RootView: View {
             } else {
                 LaunchSplash()
                     .task {
+                        // test-drive hook: the splash is a single frame on a fast
+                        // launch, so hold it to screenshot the loading state
+                        if let hold = ProcessInfo.processInfo.environment["RBG_SPLASHHOLD"],
+                           let seconds = Double(hold) {
+                            try? await Task.sleep(for: .seconds(seconds))
+                        }
                         // runs after the splash's first frame is committed
                         store = AppStore.shared
                     }
@@ -79,38 +85,29 @@ struct RootView: View {
         .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
     }
 
-    /// Instant first frame while the engine loads: the app-icon tile look on
-    /// the cream field (continuous with the static launch screen) plus a
-    /// spinner so a slow cold start reads as loading, not frozen.
+    /// Holds the launch screen's look while the engine loads, so the handoff
+    /// from `LaunchScreen.storyboard` to SwiftUI is invisible: same cream field,
+    /// same centred wordmark at the same size/kerning/position. Only the spinner
+    /// is added — it marks a slow cold start as loading rather than frozen.
+    ///
+    /// Any change to the wordmark here has to be mirrored in the storyboard.
     private struct LaunchSplash: View {
         var body: some View {
-            VStack(spacing: 22) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Theme.accent)
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Theme.landedBorder, lineWidth: 4)
-                    Text("RB")
-                        .font(Theme.glyph(size: 44))
-                        .foregroundStyle(Theme.white)
-                }
-                .frame(width: 112, height: 112)
-                .overlay(alignment: .topTrailing) {
-                    Circle()
-                        .fill(Theme.accent)
-                        .overlay(Circle().stroke(Theme.bg, lineWidth: 3))
-                        .frame(width: 22, height: 22)
-                        .offset(x: 8, y: -8)
-                }
+            ZStack {
+                Theme.bg
                 Text("RB Grind".uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .kerning(2.2)
-                    .foregroundStyle(Theme.muted)
-                ProgressView()
-                    .tint(Theme.muted)
+                    .font(.system(size: 17, weight: .semibold))
+                    .kerning(6)
+                    .foregroundStyle(Theme.text)
+                VStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(Theme.muted)
+                        .padding(.bottom, 88)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.bg)
+            .ignoresSafeArea()
         }
     }
 

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The real first frame — UIKit renders this before any Swift runs, so it is the
+  only place branding can appear during a cold start. The plain `UILaunchScreen`
+  color it replaces could only paint a bare cream field, which read as a blank
+  white screen on a slow device launch.
+
+  Keep the wordmark (text, size 17, semibold, kern 6, centered) byte-for-byte in
+  sync with `RootView.LaunchSplash` — SwiftUI takes over from this view and any
+  mismatch shows up as a jump.
+-->
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="RBG-vc-001">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Launch Screen-->
+        <scene sceneID="RBG-sc-001">
+            <objects>
+                <viewController id="RBG-vc-001" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="RBG-vw-001">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" usesAttributedText="YES" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="RBG-lb-001">
+                                <rect key="frame" x="115" y="416" width="163" height="20"/>
+                                <attributedString key="attributedText">
+                                    <fragment content="RB GRIND">
+                                        <attributes>
+                                            <font key="NSFont" metaFont="systemSemibold" size="17"/>
+                                            <color key="NSColor" red="0.050980392156862744" green="0.043137254901960784" blue="0.031372549019607843" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <real key="NSKern" value="6"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="RBG-sa-001"/>
+                        <color key="backgroundColor" red="0.96078431372549022" green="0.94117647058823528" blue="0.90980392156862744" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="RBG-lb-001" firstAttribute="centerX" secondItem="RBG-vw-001" secondAttribute="centerX" id="RBG-ct-001"/>
+                            <constraint firstItem="RBG-lb-001" firstAttribute="centerY" secondItem="RBG-vw-001" secondAttribute="centerY" id="RBG-ct-002"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="RBG-fr-001" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+</document>
