@@ -45,6 +45,16 @@ const BASE = [
   { id:'ufo',       name:'UFO',         fam:'groove', lead:'Fastslide',    trail:'Pudslide',   bsLead:'BS Fastslide', bsTrail:'BS Pudslide' },
   { id:'darkslide', name:'Darkslide',   fam:'groove', lead:'BS Backslide', trail:'Backslide',  bsLead:'Backslide',    bsTrail:'BS Backslide', def:false },
   { id:'wheelbarrow',name:'Wheelbarrow', fam:'groove', lead:'Wheel',        trail:'Backslide',  bsLead:'Wheel',        bsTrail:'BS Backslide', def:false },
+  // Nine Bar (a.k.a. "line bar", popular mid/late-90s): back foot in the
+  // backslide plate, front foot in an ALLEY-OOP toe roll. Shares Wheelbarrow's
+  // trail plate; the front foot is the whole difference, so it gets its own
+  // entry rather than riding Wheelbarrow's reversal flag — that flag is already
+  // spent on Backside Wheelbarrow (see HYBRID), and an AO toe roll is a
+  // genuinely different plate, not a lead/trail reordering. Same reasoning that
+  // gave Byn Soul its own plate table. Plate word 'AO Toe Roll' per Jim.
+  // Backside flips only the BACK foot (bsTrail), exactly like Wheelbarrow: the
+  // front foot's AO toe roll and the FS/BS approach are independent axes.
+  { id:'ninebar',   name:'Nine Bar',    fam:'groove', lead:'AO Toe Roll',  trail:'Backslide',  bsLead:'AO Toe Roll',  bsTrail:'BS Backslide', def:false },
 ];
 
 const SPECIAL = {
@@ -65,7 +75,7 @@ const V3 = (() => {
     frontside:'Frontside', farv:'Full Torque', royale:'Royale', cabdriver:'Cab Driver',
     unity:'Unity', savannah:'Savannah', pudslide:'Pudslide', fastslide:'Fastslide',
     torque_g:'Torque', backslide:'Backslide', tabernacle:'Tabernacle', bynsoul:'Byn Soul',
-    ufo:'UFO', darkslide:'Darkslide', wheelbarrow:'Wheelbarrow',
+    ufo:'UFO', darkslide:'Darkslide', wheelbarrow:'Wheelbarrow', ninebar:'Nine Bar',
   };
   const ALIASES = {
     'AO Torque Soul':'Soyale','AO Topside Mizu':'Kindgrind',
@@ -73,7 +83,8 @@ const V3 = (() => {
     'AO Unity':'Savannah','AO Backside Unity':'Backside Savannah',
   };
   const HYBRID = { tabernacle:{rev:'backside',top:false}, darkslide:{rev:'backside',top:false},
-    bynsoul:{rev:'topside',top:true}, wheelbarrow:{rev:'backside',top:false} };
+    bynsoul:{rev:'topside',top:true}, wheelbarrow:{rev:'backside',top:false},
+    ninebar:{rev:'backside',top:false} };
   // Byn Soul included: mechanically a groove, but its rotation/naming is
   // fully soul-style (see the module-scope rotFam() used by the rest of
   // the engine for the same idea outside this closure) — so it routes
@@ -142,7 +153,7 @@ const V3 = (() => {
         const r = HYBRID[id];
         let core = base;
         const reversed = f.backside || f.ao;
-        // Tabernacle / Darkslide / Wheelbarrow: reversal → Backside X
+        // Tabernacle / Darkslide / Wheelbarrow / Nine Bar: reversal → Backside X
         // (Byn Soul used to be handled here too — it's soul-style now, see
         // isSoul above, so it routes through nameWithFlags like a real soul
         // instead. Still left in HYBRID below for validity()'s topside/
@@ -961,6 +972,7 @@ const PROG_NODES = [
   { id:'bs_tabernacle',base:'tabernacle',flags:{ backside:true }, parents:[['tabernacle']] },
   { id:'bs_darkslide', base:'darkslide', flags:{ backside:true }, parents:[['darkslide']] },
   { id:'bs_wheelbarrow',base:'wheelbarrow',flags:{ backside:true }, parents:[['wheelbarrow']] },
+  { id:'bs_ninebar',   base:'ninebar',   flags:{ backside:true }, parents:[['ninebar']] },
   { id:'bs_savannah',  base:'savannah',  flags:{ backside:true }, parents:[['savannah']] },
   { id:'ts_bynsoul',   base:'bynsoul',   flags:{ topside:true },  parents:[['bynsoul']] },  // Byn Soul takes topside (not backside — its flip is AO)
   { id:'ufo',        base:'ufo',        parents:[['frontside']] },
@@ -970,6 +982,7 @@ const PROG_NODES = [
   { id:'bynsoul',    base:'bynsoul',    parents:[['soul']] },
   { id:'darkslide',  base:'darkslide',  parents:[['acid','backslide']] },          // Acid and Backslide
   { id:'wheelbarrow',base:'wheelbarrow',parents:[['royale'],['backslide']] },      // Royale or Backslide
+  { id:'ninebar',    base:'ninebar',    parents:[['wheelbarrow']] },               // the AO-toe-roll wheelbarrow
 ];
 const PROG_BY_ID = Object.fromEntries(PROG_NODES.map(n => [n.id, n]));
 // parent helpers for the group model
@@ -1022,6 +1035,7 @@ const PROG_GLYPH_OVERRIDES = {
   fishbrain:'FSH', bs_royale:'BRO', bs_ufo:'BFO', sweatstance:'SWT', kindgrind:'KND',
   bs_torque:'BTQ', bs_unity:'BUN', ts_bynsoul:'TBN', bs_wheelbarrow:'BWB',
   overpuss:'TM', bs_savannah:'BSV', bs_darkslide:'BDS', bs_tabernacle:'BTB',
+  ninebar:'NB', bs_ninebar:'BNB',
 };
 function progComputeGlyphs(nodes) {
   const used = new Set(Object.values(PROG_GLYPH_OVERRIDES));
@@ -1053,7 +1067,7 @@ const progEntry = (node) => {
 
 // tier = longest path from any root (so a node sits below ALL its parents)
 // ── hand-authored layout (Jim's worksheet) ────────────────────────────────────
-// Coach-designed 11-row curriculum (all 49 tiles pinned; left→right = easiest→
+// Coach-designed 11-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
 //  · Buck Factor — frontside Torque/Full Torque are toe-catch risky on ledges, so
@@ -1074,8 +1088,8 @@ const PROG_ROWS = [
   ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
   ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
   ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
-  ['bs_savannah', 'bs_wheelbarrow', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_backslide'],
-  ['darkslide', 'fastslide'],
+  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_backslide'],
+  ['bs_ninebar', 'darkslide', 'fastslide'],
   ['bs_darkslide', 'pudslide'],
 ];
 const PROG_PINNED_TIER = {};
@@ -1268,7 +1282,7 @@ const fmtDate = (ts) => {
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
 // Everything above this line is byte-identical to rb-trick-gen-v4.jsx
-// lines 3–1269. Everything below is the Swift↔JS boundary: each function
+// lines 3–1283. Everything below is the Swift↔JS boundary: each function
 // takes and returns JSON strings. Swift owns persistence and UI; this layer
 // owns engine calls AND the list-mutation invariants (landed/working/skipped
 // exclusivity), ported verbatim from the web App() handlers.
@@ -1618,10 +1632,10 @@ function nativeSelfTest() {
   for (let i = 0; i < 300; i++) { const d = computeDisplay(generateTrick(F2), { specialFirst: true, detailed: false }); if (!/^Switch\b/.test(d.main)) { allSw = false; break; } }
   ok('switch-100-forces-switch', allSw);
 
-  // 3) tree shape: 49 nodes, 10 rows, every node pinned
-  ok('node-count-49', PROG_NODES.length === 49, PROG_NODES.length);
+  // 3) tree shape: 51 nodes, 10 rows, every node pinned
+  ok('node-count-51', PROG_NODES.length === 51, PROG_NODES.length);
   ok('rows-10', PROG_ROWS.length === 10, PROG_ROWS.length);
-  ok('rows-cover-all-49', PROG_ROWS.flat().length === PROG_NODES.length && PROG_NODES.every(n => PROG_PINNED_TIER[n.id] != null));
+  ok('rows-cover-all-51', PROG_ROWS.flat().length === PROG_NODES.length && PROG_NODES.every(n => PROG_PINNED_TIER[n.id] != null));
 
   // 4) zero sig / glyph collisions
   const sigs = PROG_NODES.map(progSig);

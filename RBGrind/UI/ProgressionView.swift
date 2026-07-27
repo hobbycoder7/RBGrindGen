@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The 49-tile skill tree — mirror of the web Progression screen.
+/// The 51-tile skill tree — mirror of the web Progression screen.
 struct ProgressionView: View {
     @Bindable var store: AppStore
     @Binding var selection: String?
