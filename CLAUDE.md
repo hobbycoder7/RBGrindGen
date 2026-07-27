@@ -3,7 +3,10 @@
 Native SwiftUI rebuild of the RB Grind web app (rolling-blade trick generator +
 51-tile progression tree) with a settings-aware Siri trigger. The build plan and
 phase history live in `AI Files/RB_Grind_iOS_Full_Workflow.md`; phases 0–7 are
-implemented (Siri device voice test still pending a connected iPhone).
+implemented, the app is installed on a real iPhone, and Siri is voice-tested
+there — treat device behaviour as verified, not pending. The web app's
+Export/Import backup UI is deliberately JS-only debug tooling, not a missing
+iOS feature.
 
 ## Architecture — the one rule that matters
 
@@ -31,10 +34,14 @@ UI and persistence only.
 - Filters are typed (`Filters` struct) — field names must match the JS `filters`
   object exactly; every change persists immediately (that's what the Siri
   intent reads).
-- `GenerateGrindIntent` (AppIntents, in-app target) reads AppStore and returns
-  `.result(dialog:)`. Phrases all contain `\(.applicationName)`;
+- Siri intents (AppIntents, in-app target) all live in
+  `RBGrind/Intents/GrindIntent.swift` — seven ship: `GenerateGrindIntent`,
+  `RepeatGrindIntent`, `SwitchUpGrindIntent`, `GrindLandedIntent`,
+  `SkipGrindIntent`, `SaveGrindIntent`, `GrindHelpIntent`. Each reads AppStore
+  and returns `.result(dialog:)`. Phrases all contain `\(.applicationName)`;
   `INAlternativeAppNames` in `Support/Info.plist` registers "Grind" as an
-  app-name synonym.
+  app-name synonym. `"\(.applicationName) landon"` is a deliberate alias, not a
+  typo — Siri reliably mishears "landed" as "landon".
 
 ## Build / run / verify
 
@@ -73,6 +80,6 @@ xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
 - Layout constants (PROG_TILE=56, PROG_TIER_GAP=132, …) are computed in JS and
   consumed via `nativeProgTree()` — don't duplicate them in Swift.
 - Commit at every verified milestone. Verify each phase before stacking on it.
-- Device installs: free personal signing (7-day expiry), iPhone needs Developer
-  Mode; a DEVELOPMENT_TEAM must be set in Xcode Signing settings for device
-  builds (simulator needs none).
+- Device installs: free personal signing (7-day reinstall cycle — accepted,
+  not a problem to solve), iPhone needs Developer Mode; DEVELOPMENT_TEAM is
+  already set (63Y6259DG9) for device builds (simulator needs none).
