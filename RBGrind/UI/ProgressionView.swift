@@ -115,7 +115,7 @@ struct ProgressionView: View {
                     ZStack(alignment: .topLeading) {
                         edgeCanvas(tree)
                         ForEach(tree.nodes) { node in
-                            tileView(node, tile: tree.tile)
+                            tileView(node, tile: tree.tile, gap: tree.minGap)
                         }
                     }
                     .frame(width: tree.canvasW + 32, height: tree.canvasH, alignment: .topLeading)
@@ -187,7 +187,7 @@ struct ProgressionView: View {
         .frame(width: tree.canvasW + 32, height: tree.canvasH)
     }
 
-    private func tileView(_ node: ProgNode, tile: Double) -> some View {
+    private func tileView(_ node: ProgNode, tile: Double, gap: Double) -> some View {
         let nodeState = stateOf(node.id)
         let selected = selection == node.id
         let (fill, border, textColor): (Color, Color, Color) = switch nodeState {
@@ -251,7 +251,16 @@ struct ProgressionView: View {
                 .strikethrough(nodeState == "skipped", color: labelColor)
                 .multilineTextAlignment(.center)
                 .lineSpacing(0)
-                .frame(width: tile + 34)
+                // Label width is bounded by the JS-owned center-to-center gap, not a
+                // Swift-side constant. It used to be `tile + 34` (90pt) against a
+                // PROG_MINGAP of 80 — 10pt wider than the space a tile actually owns,
+                // so any two long adjacent labels overlapped ("BS Savannah"/"BS
+                // Wheelbarrow", "AO Top Pornstar"/"AO Top Mistrial"). Sizing off `gap`
+                // keeps each label inside its own column and lets long names wrap
+                // instead of colliding; the -6 leaves a hairline gutter between
+                // neighbours. Follows the same rule as the rest of the layout: spacing
+                // constants come from nativeProgTree(), never re-declared here.
+                .frame(width: gap - 6)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: tile)
