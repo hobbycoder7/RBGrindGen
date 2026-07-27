@@ -64,7 +64,7 @@ final class GrindEngine {
 enum GrindEngineSelfTest {
     /// Runs when the app is launched with RBG_SELFTEST=1 in its environment
     /// (`SIMCTL_CHILD_RBG_SELFTEST=1 simctl launch --console-pty …`).
-    /// Prints the JS self-test report, a live generated trick, and all 49
+    /// Prints the JS self-test report, a live generated trick, and all 51
     /// progression tiles — proving the bridge works for both engine halves.
     static func runIfRequested() {
         guard ProcessInfo.processInfo.environment["RBG_SELFTEST"] == "1" else { return }

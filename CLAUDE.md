@@ -1,7 +1,7 @@
 # RB Grind — native iOS app
 
 Native SwiftUI rebuild of the RB Grind web app (rolling-blade trick generator +
-49-tile progression tree) with a settings-aware Siri trigger. The build plan and
+51-tile progression tree) with a settings-aware Siri trigger. The build plan and
 phase history live in `AI Files/RB_Grind_iOS_Full_Workflow.md`; phases 0–7 are
 implemented (Siri device voice test still pending a connected iPhone).
 
@@ -10,8 +10,8 @@ implemented (Siri device voice test still pending a connected iPhone).
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1267 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1269, current as of
+- `RBGrind/Engine/grind_engine.js` — lines 1–1287 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1289, current as of
   v4.0). Never edit that region directly; edit the `.jsx` first (it's the
   canonical source), verify there with a `jsc` harness, THEN re-extract. The
   boundary shifts whenever the slice's line count changes — don't assume the
@@ -45,7 +45,7 @@ xcodebuild -project RBGrind.xcodeproj -scheme RBGrind \
   -derivedDataPath build/DerivedData build
 
 # install + launch
-xcrun simctl install "iPhone 17" build/DerivedData/Build/Products/Debug-iphonesimulator/RBGrind.app
+xcrun simctl install "iPhone 17" build/DerivedData/Build/Products/Release-iphonesimulator/RBGrind.app
 xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
 
 # test the JS engine OUTSIDE Xcode first (same engine iOS uses; node not installed)
@@ -55,7 +55,7 @@ xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
 
 ### Headless test hooks (env vars via `SIMCTL_CHILD_` prefix + `simctl launch --console-pty`)
 
-- `RBG_SELFTEST=1` — engine self-test: 12 checks + all 49 tiles printed.
+- `RBG_SELFTEST=1` — engine self-test: 12 checks + all 51 tiles printed.
 - `RBG_STORETEST=write|read|reset|seed|gentest|intenttest` — persistence
   round-trip across launches, list seeding, slider→distribution check
   (switch=100 ⇒ all Switch), Siri dialog path.
