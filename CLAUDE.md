@@ -45,7 +45,7 @@ xcodebuild -project RBGrind.xcodeproj -scheme RBGrind \
   -derivedDataPath build/DerivedData build
 
 # install + launch
-xcrun simctl install "iPhone 17" build/DerivedData/Build/Products/Debug-iphonesimulator/RBGrind.app
+xcrun simctl install "iPhone 17" build/DerivedData/Build/Products/Release-iphonesimulator/RBGrind.app
 xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
 
 # test the JS engine OUTSIDE Xcode first (same engine iOS uses; node not installed)
