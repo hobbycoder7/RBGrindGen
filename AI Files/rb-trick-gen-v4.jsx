@@ -1080,9 +1080,10 @@ const progEntry = (node) => {
 // Coach-designed 9-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
-//  · Buck Factor — frontside Torque is toe-catch risky on ledges, so it sits
-//    late/right; the backsides are EASIER locks and come right after. Full Torque
-//    is the exception: live testing moved it to mid-row 4, ahead of Backslide.
+//  · Buck factor (toe-catch risk on ledges) is deliberately NOT an ordering
+//    principle, per Jim: by the rows where it would apply the skater is already
+//    intermediate and knows what they're getting into, so risk alone doesn't
+//    push a trick right. Order on lock difficulty instead.
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
 //    front-foot, full-view, low-commit (early). BS Backslide is back-foot,
 //    rotate-and-commit, which SkaMiDan tiers late — but live testing moved it up
