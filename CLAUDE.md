@@ -13,8 +13,8 @@ iOS feature.
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1299 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1301, current as of
+- `RBGrind/Engine/grind_engine.js` — lines 1–1293 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1295, current as of
   v4.0). Never edit that region directly; edit the `.jsx` first (it's the
   canonical source), verify there with a `jsc` harness, THEN re-extract. The
   boundary shifts whenever the slice's line count changes — don't assume the
@@ -62,7 +62,7 @@ xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
 
 ### Headless test hooks (env vars via `SIMCTL_CHILD_` prefix + `simctl launch --console-pty`)
 
-- `RBG_SELFTEST=1` — engine self-test: 16 checks + all 51 tiles printed.
+- `RBG_SELFTEST=1` — engine self-test: 12 checks + all 51 tiles printed.
 - `RBG_STORETEST=write|read|reset|seed|gentest|intenttest` — persistence
   round-trip across launches, list seeding, slider→distribution check
   (switch=100 ⇒ all Switch), Siri dialog path.
@@ -79,15 +79,6 @@ xcrun simctl launch "iPhone 17" com.jameskopacz.RBGrind
   system condensed black face (stand-in for web Barlow Condensed 900).
 - Layout constants (PROG_TILE=56, PROG_TIER_GAP=132, …) are computed in JS and
   consumed via `nativeProgTree()` — don't duplicate them in Swift.
-- Tree layout is authored in `PROG_ROWS`: position in a row **is** the column, so
-  a `null` entry is a gap that holds a column and draws nothing. That's what lets
-  a tile be parked directly under its parent instead of packing hard left. Every
-  count over `PROG_ROWS` must therefore filter nulls. Arrange it with
-  `AI Files/rbgrind-layout-tool.html` (open it on a phone, tap-to-place, "Under
-  &lt;parent&gt;" snaps a tile to that parent's column) and paste the export back.
-  Its tile table is generated from the engine by `AI Files/prog_dump.js` under
-  `jsc` — regenerate rather than hand-editing, which is how it once drifted to 49
-  tiles with four wrong glyphs.
 - Commit at every verified milestone. Verify each phase before stacking on it.
 - Device installs: free personal signing (7-day reinstall cycle — accepted,
   not a problem to solve), iPhone needs Developer Mode; DEVELOPMENT_TEAM is

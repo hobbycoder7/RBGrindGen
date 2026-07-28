@@ -970,7 +970,9 @@ const PROG_NODES = [
   { id:'unity',      base:'unity',      parents:[['pornstar']] },
   { id:'savannah',   base:'savannah',   parents:[['unity']] },                     // Savannah (its own base) ← Unity
   // backside tiles + hubs — each unlocks from its own base grind (do the base, unlock its backside)
-  { id:'bs_backslide', base:'backslide', flags:{ backside:true }, parents:[['backslide']] },
+  // Root, not a child of Backslide: Jim placed it row 4 beside Full Torque, which
+  // is Backslide's own row, so the gate was removed rather than drawn sideways.
+  { id:'bs_backslide', base:'backslide', flags:{ backside:true }, parents:[] },
   { id:'bs_farv',      base:'farv',      flags:{ backside:true }, parents:[['farv']] },
   { id:'bs_torque',    base:'torque_g',  flags:{ backside:true }, parents:[['torque_g']] },
   { id:'bs_unity',     base:'unity',     flags:{ backside:true }, parents:[['unity']] },
@@ -1075,14 +1077,17 @@ const progEntry = (node) => {
 
 // tier = longest path from any root (so a node sits below ALL its parents)
 // ── hand-authored layout (Jim's worksheet) ────────────────────────────────────
-// Coach-designed 11-row curriculum (all 51 tiles pinned; left→right = easiest→
+// Coach-designed 9-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
 //  · Buck Factor — frontside Torque/Full Torque are toe-catch risky on ledges, so
 //    they sit late/right; their backsides are EASIER locks and come right after.
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
-//    front-foot, full-view, low-commit (early); BS Backslide is back-foot,
-//    rotate-and-commit (late, advanced per SkaMiDan).
+//    front-foot, full-view, low-commit (early). BS Backslide is back-foot,
+//    rotate-and-commit, which SkaMiDan tiers late — but live testing moved it up
+//    beside Full Torque (row 4). That is Backslide's own row, so per Jim the
+//    Backslide gate is removed and it stands as a root rather than being drawn
+//    as a sideways edge from a tile alongside it.
 //  · Fastslide/Pudslide are friction slides, not locked grinds, and SkaMiDan
 //    tiers them hardest — but live testing put them early in practice, so per
 //    Jim they sit right of Royale (row 1) and BS Royale (row 2), close to the
@@ -1094,23 +1099,16 @@ const PROG_ROWS = [
   ['makio', 'frontside'],
   ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide'],
   ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide'],
-  ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'hotdog'],
+  ['mistrial', 'bynsoul', 'unity', 'backslide', 'bs_backslide', 'farv', 'hotdog'],
   ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
   ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
   ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
-  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_backslide'],
-  ['bs_ninebar', 'darkslide'],
-  ['bs_darkslide'],
+  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'darkslide', 'misfit'],
+  ['bs_darkslide', 'bs_ninebar'],
 ];
-// A `null` entry in a row is a GAP: it holds a column but draws no tile, which is
-// what lets a tile be parked directly under its parent instead of packing hard
-// left. So ORDER is a real column number, not a position in a dense list.
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};
-PROG_ROWS.forEach((row, t) => row.forEach((id, i) => {
-  if (id == null) return;
-  PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i;
-}));
+PROG_ROWS.forEach((row, t) => row.forEach((id, i) => { PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i; }));
 
 function progTiers(nodes) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
@@ -1135,19 +1133,15 @@ function progLayoutX(nodes, tiers) {
   const rows = Array.from({ length: maxTier + 1 }, () => []);
   nodes.forEach(n => rows[tiers[n.id]].push(n.id));
 
-  // A pinned tile sits at its OWN column (PROG_PINNED_ORDER), not at its position
-  // in a repacked list — that's what preserves gaps. Any auto-attached (derived)
-  // tile sharing the tier is appended after the last pinned column, alphabetically;
-  // position among those doesn't matter, per the worksheet, but they must not drop
-  // into a gap that was left deliberately.
+  // pinned nodes keep Jim's explicit left-to-right order; any auto-attached
+  // (derived) tile sharing that tier is appended after them, alphabetically —
+  // position among those doesn't matter, per the worksheet.
   const x = {};
   const LEFT = PROG_TILE / 2 + 8;
   for (let t = 0; t <= maxTier; t++) {
-    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t);
-    pinned.forEach(id => { x[id] = LEFT + PROG_PINNED_ORDER[id] * PROG_MINGAP; });
+    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t).sort((a, b) => PROG_PINNED_ORDER[a] - PROG_PINNED_ORDER[b]);
     const auto = rows[t].filter(id => PROG_PINNED_TIER[id] !== t).sort((a, b) => progName(byId[a]).localeCompare(progName(byId[b])));
-    let col = pinned.length ? Math.max(...pinned.map(id => PROG_PINNED_ORDER[id])) + 1 : 0;
-    auto.forEach(id => { x[id] = LEFT + col++ * PROG_MINGAP; });
+    [...pinned, ...auto].forEach((id, i) => { x[id] = LEFT + i * PROG_MINGAP; });
   }
   return x;
 }

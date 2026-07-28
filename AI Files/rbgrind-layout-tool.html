@@ -60,10 +60,8 @@
   .held{display:none;align-items:center;gap:10px;margin-top:9px;padding:8px 10px;
     background:var(--accent);color:#fff;border-radius:10px;font-size:13px;font-weight:700}
   .held.on{display:flex}
-  /* no margin-left:auto here - .snap already pushes the whole right-hand group
-     over, and setting it per-button would space the snap buttons apart */
   .held button{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;
-    min-height:32px;padding:5px 11px;font-size:12px}
+    min-height:32px;padding:5px 11px;font-size:12px;margin-left:auto}
 
   .flag{margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:12.5px;
     background:var(--alert-soft);border:1px solid var(--alert);color:var(--alert);font-weight:600}
@@ -78,28 +76,10 @@
     border:1px dashed var(--line);border-radius:11px;padding:7px 5px;margin-bottom:14px;
     min-height:92px}
 
-  /* carets do double duty: drop target while holding a tile, "insert a gap here"
-     when idle, so there is always something meaningful between two tiles */
-  .caret{width:18px;align-self:stretch;min-height:74px;border-radius:4px;
-    background:transparent;border:0;padding:0;cursor:pointer;color:var(--muted);
-    font-size:13px;font-weight:700;line-height:1;opacity:.35}
-  .caret:hover,.caret:focus-visible{opacity:1;background:var(--sunk)}
-  body.holding .caret{width:26px;background:var(--accent-soft);opacity:1}
+  .caret{width:7px;align-self:stretch;min-height:74px;border-radius:4px;
+    background:transparent;border:0;padding:0;cursor:default}
+  body.holding .caret{width:26px;background:var(--accent-soft);cursor:pointer}
   body.holding .caret:hover,body.holding .caret:focus-visible{background:var(--accent)}
-  body.holding .caret::after{content:""}
-
-  /* a gap holds a column and draws nothing in the app - here it is a dashed
-     placeholder you can tap to remove */
-  .gap{width:70px;min-height:74px;border:1.5px dashed var(--line);border-radius:12px;
-    background:transparent;cursor:pointer;display:flex;align-items:center;
-    justify-content:center;color:var(--muted);font-size:10px;font-weight:700;
-    letter-spacing:.05em;padding:0}
-  .gap:hover,.gap:focus-visible{border-color:var(--alert);color:var(--alert)}
-
-  .snap{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;align-items:center}
-  .snap button{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;
-    min-height:32px;padding:5px 10px;font-size:12px}
-  .snap button:hover{background:rgba(255,255,255,.3);border-color:transparent}
 
   .tile{width:70px;display:flex;flex-direction:column;align-items:center;gap:3px;
     padding:4px 2px;border:0;background:transparent;border-radius:9px;cursor:pointer;
@@ -134,10 +114,8 @@
 <div class="page">
   <header>
     <h1>RB Grind &mdash; Row Layout Tool</h1>
-    <p class="lede">Tap a tile to pick it up, then tap a slot to drop it &mdash; or use
-      <b>Under &lt;parent&gt;</b> to park it in that parent's column so the tree reads as a
-      flow. Tap <b>+</b> between tiles to insert a gap, tap a gap to remove it. Export when
-      it looks right and paste it back to Claude.</p>
+    <p class="lede">Tap a tile to pick it up, then tap a gap to drop it. Small text under
+      each tile is what unlocks it. Export when it looks right and paste it back to Claude.</p>
     <div class="tools">
       <button id="add">Add row</button>
       <button id="reset">Reset</button>
@@ -147,7 +125,6 @@
     </div>
     <div class="held" id="held">
       <span id="heldName"></span>
-      <span class="snap" id="snap"></span>
       <button id="cancel">Cancel</button>
     </div>
   </header>
@@ -214,7 +191,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(rows)); }catch(e)
    climbs the tree \u2014 the export would look fine and the tree would not, so flag it here */
 function problems(){
   const at = {};
-  rows.forEach((r,i) => r.forEach(id => { if(id != null) at[id] = i; }));
+  rows.forEach((r,i) => r.forEach(id => { at[id] = i; }));
   const out = [];
   ALL.forEach(id => {
     if(at[id] == null) return;
@@ -226,11 +203,6 @@ function problems(){
   return out;
 }
 
-/* trailing gaps carry no meaning - a row's width is decided by its last tile */
-function trimTrailing(){
-  rows.forEach(r => { while(r.length && r[r.length-1] == null) r.pop(); });
-}
-
 function place(id, r, i){
   let fr=-1, fi=-1;
   for(let x=0;x<rows.length;x++){ const k=rows[x].indexOf(id); if(k>=0){fr=x;fi=k;break;} }
@@ -239,31 +211,9 @@ function place(id, r, i){
   let at = i;
   if(fr===r && fi<i) at--;
   rows[r].splice(at,0,id);
-  trimTrailing();
   held = null;
   render();
 }
-
-/* the align helper: park a tile in the same column as one of its parents, padding
-   with gaps if the row is too short. This is what makes the tree read as a flow. */
-function snapUnder(id, parentId){
-  let pr=-1, pi=-1;
-  for(let x=0;x<rows.length;x++){ const k=rows[x].indexOf(parentId); if(k>=0){pr=x;pi=k;break;} }
-  if(pr<0) return;
-  let fr=-1, fi=-1;
-  for(let x=0;x<rows.length;x++){ const k=rows[x].indexOf(id); if(k>=0){fr=x;fi=k;break;} }
-  if(fr<0) return;
-  rows[fr].splice(fi,1);
-  const row = rows[fr];
-  while(row.length < pi) row.push(null);      // pad out to the parent's column
-  row.splice(pi, 0, id);                      // land exactly on it
-  trimTrailing();
-  held = null;
-  render();
-}
-
-function insertGap(r,i){ rows[r].splice(i,0,null); trimTrailing(); render(); }
-function removeGap(r,i){ rows[r].splice(i,1); trimTrailing(); render(); }
 function pick(id){
   if(held===id){ held=null; }
   else if(held){
@@ -282,11 +232,8 @@ function render(){
     head.className = 'rowhead';
     const n = document.createElement('span');
     n.className='rownum'; n.textContent = 'ROW ' + (r+1);
-    const nTiles = row.filter(x => x != null).length;
-    const nGaps = row.length - nTiles;
     const c = document.createElement('span');
-    c.className='rowcount';
-    c.textContent = '\u00b7 ' + nTiles + (nTiles===1?' tile':' tiles') + (nGaps ? ', ' + nGaps + ' gap' + (nGaps===1?'':'s') : '');
+    c.className='rowcount'; c.textContent = '\u00b7 ' + row.length + (row.length===1?' tile':' tiles');
     head.append(n,c);
     if(!row.length){
       const del = document.createElement('button');
@@ -298,18 +245,16 @@ function render(){
     const band = document.createElement('div');
     band.className = 'band';
     band.append(caret(r,0));
-    row.forEach((id,i) => { band.append(id == null ? gapSlot(r,i) : tile(id), caret(r,i+1)); });
+    row.forEach((id,i) => { band.append(tile(id), caret(r,i+1)); });
 
     host.append(head, band);
   });
 
-  const flat = rows.flat().filter(x => x != null);
+  const flat = rows.flat();
   const missing = ALL.filter(id => !flat.includes(id));
-  const cols = Math.max(0, ...rows.map(r => r.length));
   const tally = document.getElementById('tally');
-  tally.textContent = flat.length + '/' + ALL.length + ' placed \u00b7 ' + cols + ' cols';
-  // 16 columns is the agreed width budget (~2-3 phone screens)
-  tally.classList.toggle('bad', flat.length !== ALL.length || missing.length > 0 || cols > 16);
+  tally.textContent = flat.length + '/' + ALL.length + ' placed';
+  tally.classList.toggle('bad', flat.length !== ALL.length || missing.length > 0);
 
   const probs = problems();
   const flag = document.getElementById('flag');
@@ -329,19 +274,7 @@ function render(){
 
   const heldBar = document.getElementById('held');
   heldBar.classList.toggle('on', !!held);
-  const snap = document.getElementById('snap');
-  snap.textContent = '';
-  if(held){
-    document.getElementById('heldName').textContent = 'Holding ' + TILE[held].name;
-    // one button per parent \u2014 for the six multi-parent tiles this IS the picker
-    // that decides which parent it visually lives under
-    TILE[held].pids.forEach(pid => {
-      const b = document.createElement('button');
-      b.textContent = 'Under ' + TILE[pid].name;
-      b.onclick = () => snapUnder(held, pid);
-      snap.append(b);
-    });
-  }
+  if(held) document.getElementById('heldName').textContent = 'Holding ' + TILE[held].name + ' \u2014 tap a gap to drop it';
 
   document.getElementById('expText').value = serialize();
   save();
@@ -367,25 +300,15 @@ function tile(id){
 }
 function caret(r,i){
   const c = document.createElement('button');
-  c.className='caret';
-  c.textContent = held ? '' : '+';
-  c.setAttribute('aria-label', held
-    ? 'Drop here, row '+(r+1)+' column '+(i+1)
-    : 'Insert a gap, row '+(r+1)+' column '+(i+1));
-  c.onclick = () => { held ? place(held,r,i) : insertGap(r,i); };
+  c.className='caret'; c.tabIndex = held ? 0 : -1;
+  c.setAttribute('aria-label','Drop here, row '+(r+1)+' position '+(i+1));
+  c.onclick = () => { if(held) place(held,r,i); };
   return c;
-}
-function gapSlot(r,i){
-  const g = document.createElement('button');
-  g.className='gap'; g.textContent='GAP';
-  g.setAttribute('aria-label','Gap at row '+(r+1)+' column '+(i+1)+'. Remove it.');
-  g.onclick = () => { held ? place(held,r,i) : removeGap(r,i); };
-  return g;
 }
 
 function serialize(){
   return 'const PROG_ROWS = [\n' +
-    rows.map(r => '  [' + r.map(id => id == null ? 'null' : "'"+id+"'").join(', ') + '],').join('\n') + '\n];';
+    rows.map(r => '  [' + r.map(id => "'"+id+"'").join(', ') + '],').join('\n') + '\n];';
 }
 
 document.getElementById('add').onclick = () => { rows.push([]); render(); };
@@ -409,15 +332,12 @@ document.getElementById('copy').onclick = async () => {
 document.getElementById('impLoad').onclick = () => {
   const msg = document.getElementById('impMsg');
   const text = document.getElementById('impText').value;
-  // ids and bare `null` gaps, in order \u2014 a gap must survive the round-trip or
-  // every alignment to its right silently shifts one column left
   const parsed = [...text.matchAll(/\[([^\[\]]*)\]/g)]
-    .map(m => [...m[1].matchAll(/'([a-zA-Z0-9_]+)'|"([a-zA-Z0-9_]+)"|\bnull\b/g)]
-                 .map(x => x[1] || x[2] || null))
+    .map(m => [...m[1].matchAll(/['"]([a-zA-Z0-9_]+)['"]/g)].map(x => x[1]))
     .filter(r => r.length);
   msg.className = 'msg no';
   if(!parsed.length){ msg.textContent = "No rows found \u2014 paste the PROG_ROWS array."; return; }
-  const flat = parsed.flat().filter(x => x != null);
+  const flat = parsed.flat();
   const unknown = flat.filter(id => !TILE[id]);
   if(unknown.length){ msg.textContent = 'Unknown tile: ' + unknown.join(', ') + ' \u2014 nothing loaded.'; return; }
   const seen = new Set(), dupes = new Set();
