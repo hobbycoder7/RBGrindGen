@@ -1100,9 +1100,15 @@ const PROG_ROWS = [
   ['bs_ninebar', 'darkslide'],
   ['bs_darkslide'],
 ];
+// A `null` entry in a row is a GAP: it holds a column but draws no tile, which is
+// what lets a tile be parked directly under its parent instead of packing hard
+// left. So ORDER is a real column number, not a position in a dense list.
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};
-PROG_ROWS.forEach((row, t) => row.forEach((id, i) => { PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i; }));
+PROG_ROWS.forEach((row, t) => row.forEach((id, i) => {
+  if (id == null) return;
+  PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i;
+}));
 
 function progTiers(nodes) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
@@ -1127,15 +1133,19 @@ function progLayoutX(nodes, tiers) {
   const rows = Array.from({ length: maxTier + 1 }, () => []);
   nodes.forEach(n => rows[tiers[n.id]].push(n.id));
 
-  // pinned nodes keep Jim's explicit left-to-right order; any auto-attached
-  // (derived) tile sharing that tier is appended after them, alphabetically —
-  // position among those doesn't matter, per the worksheet.
+  // A pinned tile sits at its OWN column (PROG_PINNED_ORDER), not at its position
+  // in a repacked list — that's what preserves gaps. Any auto-attached (derived)
+  // tile sharing the tier is appended after the last pinned column, alphabetically;
+  // position among those doesn't matter, per the worksheet, but they must not drop
+  // into a gap that was left deliberately.
   const x = {};
   const LEFT = PROG_TILE / 2 + 8;
   for (let t = 0; t <= maxTier; t++) {
-    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t).sort((a, b) => PROG_PINNED_ORDER[a] - PROG_PINNED_ORDER[b]);
+    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t);
+    pinned.forEach(id => { x[id] = LEFT + PROG_PINNED_ORDER[id] * PROG_MINGAP; });
     const auto = rows[t].filter(id => PROG_PINNED_TIER[id] !== t).sort((a, b) => progName(byId[a]).localeCompare(progName(byId[b])));
-    [...pinned, ...auto].forEach((id, i) => { x[id] = LEFT + i * PROG_MINGAP; });
+    let col = pinned.length ? Math.max(...pinned.map(id => PROG_PINNED_ORDER[id])) + 1 : 0;
+    auto.forEach(id => { x[id] = LEFT + col++ * PROG_MINGAP; });
   }
   return x;
 }
@@ -1286,7 +1296,6 @@ const fmtDate = (ts) => {
   if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
-
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
 // Everything above this line is byte-identical to rb-trick-gen-v4.jsx
@@ -1640,10 +1649,36 @@ function nativeSelfTest() {
   for (let i = 0; i < 300; i++) { const d = computeDisplay(generateTrick(F2), { specialFirst: true, detailed: false }); if (!/^Switch\b/.test(d.main)) { allSw = false; break; } }
   ok('switch-100-forces-switch', allSw);
 
-  // 3) tree shape: 51 nodes, 10 rows, every node pinned
+  // 3) tree shape: 51 nodes, 10 rows, every node pinned.
+  //    Rows may contain `null` gaps (they hold a column, draw nothing), so every
+  //    count here filters them out — a gap is layout, not a tile.
+  const rowIds = PROG_ROWS.flat().filter(id => id != null);
   ok('node-count-51', PROG_NODES.length === 51, PROG_NODES.length);
   ok('rows-10', PROG_ROWS.length === 10, PROG_ROWS.length);
-  ok('rows-cover-all-51', PROG_ROWS.flat().length === PROG_NODES.length && PROG_NODES.every(n => PROG_PINNED_TIER[n.id] != null));
+  ok('rows-cover-all-51', rowIds.length === PROG_NODES.length && PROG_NODES.every(n => PROG_PINNED_TIER[n.id] != null), rowIds.length);
+  ok('rows-no-dupes', new Set(rowIds).size === rowIds.length, rowIds.length - new Set(rowIds).size);
+  // gaps must not collide: two tiles in one row can never share a column, and a
+  // tile's x must be exactly its column — this is what a bad hand-edit would break
+  {
+    const tiersNow = progTiers(PROG_NODES);
+    const xsNow = progLayoutX(PROG_NODES, tiersNow);
+    const LEFT = PROG_TILE / 2 + 8;
+    let clash = 0, offGrid = 0;
+    PROG_ROWS.forEach(row => {
+      const seen = new Set();
+      row.forEach((id, col) => {
+        if (id == null) return;
+        if (seen.has(col)) clash++;
+        seen.add(col);
+        if (xsNow[id] !== LEFT + col * PROG_MINGAP) offGrid++;
+      });
+    });
+    ok('cols-unique', clash === 0, clash);
+    ok('cols-match-x', offGrid === 0, offGrid);
+    const widest = Math.max(...PROG_ROWS.map(r => r.length));
+    ok('cols-within-budget', widest <= 16,
+       widest + ' cols / ' + (LEFT + (widest - 1) * PROG_MINGAP + PROG_TILE / 2 + 24) + 'px');
+  }
 
   // 4) zero sig / glyph collisions
   const sigs = PROG_NODES.map(progSig);

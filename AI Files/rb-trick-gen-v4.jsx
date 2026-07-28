@@ -1102,9 +1102,15 @@ const PROG_ROWS = [
   ['bs_ninebar', 'darkslide'],
   ['bs_darkslide'],
 ];
+// A `null` entry in a row is a GAP: it holds a column but draws no tile, which is
+// what lets a tile be parked directly under its parent instead of packing hard
+// left. So ORDER is a real column number, not a position in a dense list.
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};
-PROG_ROWS.forEach((row, t) => row.forEach((id, i) => { PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i; }));
+PROG_ROWS.forEach((row, t) => row.forEach((id, i) => {
+  if (id == null) return;
+  PROG_PINNED_TIER[id] = t; PROG_PINNED_ORDER[id] = i;
+}));
 
 function progTiers(nodes) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
@@ -1129,15 +1135,19 @@ function progLayoutX(nodes, tiers) {
   const rows = Array.from({ length: maxTier + 1 }, () => []);
   nodes.forEach(n => rows[tiers[n.id]].push(n.id));
 
-  // pinned nodes keep Jim's explicit left-to-right order; any auto-attached
-  // (derived) tile sharing that tier is appended after them, alphabetically —
-  // position among those doesn't matter, per the worksheet.
+  // A pinned tile sits at its OWN column (PROG_PINNED_ORDER), not at its position
+  // in a repacked list — that's what preserves gaps. Any auto-attached (derived)
+  // tile sharing the tier is appended after the last pinned column, alphabetically;
+  // position among those doesn't matter, per the worksheet, but they must not drop
+  // into a gap that was left deliberately.
   const x = {};
   const LEFT = PROG_TILE / 2 + 8;
   for (let t = 0; t <= maxTier; t++) {
-    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t).sort((a, b) => PROG_PINNED_ORDER[a] - PROG_PINNED_ORDER[b]);
+    const pinned = rows[t].filter(id => PROG_PINNED_TIER[id] === t);
+    pinned.forEach(id => { x[id] = LEFT + PROG_PINNED_ORDER[id] * PROG_MINGAP; });
     const auto = rows[t].filter(id => PROG_PINNED_TIER[id] !== t).sort((a, b) => progName(byId[a]).localeCompare(progName(byId[b])));
-    [...pinned, ...auto].forEach((id, i) => { x[id] = LEFT + i * PROG_MINGAP; });
+    let col = pinned.length ? Math.max(...pinned.map(id => PROG_PINNED_ORDER[id])) + 1 : 0;
+    auto.forEach(id => { x[id] = LEFT + col++ * PROG_MINGAP; });
   }
   return x;
 }
