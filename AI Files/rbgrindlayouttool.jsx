@@ -3,6 +3,12 @@ import React, { useState, useRef } from 'react';
 // ── RB Grind — row layout tool ───────────────────────────────────────────────
 // Drag tiles between rows, export a PROG_ROWS block, paste it back to Claude.
 //
+// NOTE: `rbgrind-layout-tool.html` in this folder is the same tool as a plain
+// self-contained page — no React, so it opens on a phone, and it's the version
+// published as an Artifact. This .jsx is kept only for the React workflow. Two
+// copies means two things to update: regenerate BOTH from the engine (below),
+// or delete whichever one you've stopped using.
+//
 // TILES and INITIAL_ROWS below are generated FROM THE ENGINE, not hand-typed —
 // the previous copy of this tool had drifted (49 tiles instead of 51, Nine Bar
 // and BS Nine Bar missing entirely, and four stale glyphs: Top Mistrial was

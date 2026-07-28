@@ -1,0 +1,212 @@
+<title>RB Grind &mdash; edge routing mockup</title>
+<style>
+  :root{
+    --bg:#F5F0E8; --surface:#EDE8DC; --border:#D9D3C7; --text:#0D0B08;
+    --muted:#6B6455; --accent:#1A3FD4; --edge:#C9C1B0; --hot:#C0392B; --good:#2E7D4F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:70ch}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  button{font:inherit;font-size:13px;font-weight:700;padding:7px 13px;border-radius:9px;
+    border:1.5px solid var(--border);background:#fff;color:var(--text);cursor:pointer}
+  button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  label{font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  .stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:10px;overflow-x:auto}
+  svg{display:block;min-width:680px;width:100%;height:auto}
+  .note{margin-top:14px;font-size:13.5px;color:var(--muted);max-width:78ch}
+  .note b{color:var(--text)}
+  .key{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .key i{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:5px}
+  .count{font-size:12.5px;color:var(--muted);font-weight:700}
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#17150F;--surface:#211E16;--border:#3A3427;--text:#F2EDE2;--muted:#A79E88;
+          --accent:#7C93F5;--edge:#4A4436}
+    button{background:#2A261C;color:var(--text)}
+  }
+  :root[data-theme="dark"]{--bg:#17150F;--surface:#211E16;--border:#3A3427;--text:#F2EDE2;
+    --muted:#A79E88;--accent:#7C93F5;--edge:#4A4436}
+  :root[data-theme="dark"] button{background:#2A261C;color:var(--text)}
+  :root[data-theme="light"]{--bg:#F5F0E8;--surface:#EDE8DC;--border:#D9D3C7;--text:#0D0B08;
+    --muted:#6B6455;--accent:#1A3FD4;--edge:#C9C1B0}
+  :root[data-theme="light"] button{background:#fff;color:var(--text)}
+</style>
+
+<div class="wrap">
+  <h1>Progression tree &mdash; edge routing</h1>
+  <p class="sub">
+    Option 3 from the Fastslide/Pudslide move: stop long parent edges cutting through
+    the tiles they pass. 26 of the 54 edges span more than one row. Toggle to compare.
+  </p>
+
+  <div class="bar">
+    <button id="bCur" aria-pressed="true">Current</button>
+    <button id="bNew" aria-pressed="false">Routed (option 3)</button>
+    <label><input type="checkbox" id="cHot" checked> highlight multi-row edges</label>
+    <label><input type="checkbox" id="cFocus"> Frontside &rarr; Pudslide only</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="key">
+    <span><i style="border-color:var(--edge)"></i>single-row edge</span>
+    <span><i style="border-color:var(--hot)"></i>multi-row edge</span>
+    <span style="color:var(--hot)">&bull; = edge crosses a tile it isn't connected to</span>
+  </div>
+
+  <div class="stage"><svg id="svg" viewBox="0 0 700 1345" role="img"
+    aria-label="Progression tree with parent edges"></svg></div>
+
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+const RAW = [["makio","MAK","Makio",0,36,[]],["soul","SOL","Soul",1,36,[]],["mizu","MIZ","Mizu",1,196,[]],["acid","ACD","Acid",2,36,["soul"]],["xgrind","XGR","X-Grind",2,116,["soul"]],["stubsoul","SS","Stub Soul",4,436,["soul"]],["pornstar","PRN","Pornstar",2,196,["mizu"]],["mistrial","MIS","Mistrial",3,36,["mizu","acid","pornstar"]],["torquesoul","TQS","Torque Soul",4,36,["soul","farv"]],["teakettle","TEA","Tea Kettle",6,196,["pornstar"]],["hotdog","HTD","Hot Dog",3,436,["soul"]],["fishbrain","FSH","Fishbrain",7,276,["makio"]],["sweatstance","SWT","Sweatstance",6,516,["mizu"]],["overpuss","TM","Top Mistrial",6,436,["mistrial"]],["sunnyday","TP","Top Pornstar",5,436,["pornstar"]],["kindgrind","KND","Kindgrind",5,516,["mizu"]],["misfit","ATM","AO Top Mistrial",7,516,["overpuss"]],["cloudynight","ATP","AO Top Pornstar",7,436,["sunnyday"]],["ts_soul","TS","Top Soul",5,116,["soul"]],["ts_acid","TA","Top Acid",5,196,["acid"]],["ts_torquesoul","TTS","Top Torque Soul",5,36,["torquesoul"]],["frontside","FS","Frontside",0,116,[]],["backside","BS","Backside",1,116,["frontside"]],["royale","ROY","Royale",1,356,["frontside"]],["farv","FTQ","Full Torque",3,356,["frontside"]],["backslide","BSL","Backslide",3,276,["royale"]],["torque_g","TRQ","Torque",4,276,["farv"]],["cabdriver","CAB","Cab Driver",5,356,["backslide","torque_g"]],["unity","UNI","Unity",3,196,["pornstar"]],["savannah","SAV","Savannah",6,36,["unity"]],["bs_backslide","BSB","BS Backslide",7,596,["backslide"]],["bs_farv","BFT","BS Full Torque",4,356,["farv"]],["bs_torque","BTQ","BS Torque",5,276,["torque_g"]],["bs_unity","BUN","BS Unity",4,196,["unity"]],["bs_royale","BRO","BS Royale",2,356,["royale"]],["bs_cabdriver","BCD","BS Cab Driver",6,356,["cabdriver"]],["bs_ufo","BFO","BS UFO",2,276,["ufo"]],["bs_tabernacle","BTB","BS Tabernacle",7,356,["tabernacle"]],["bs_darkslide","BDS","BS Darkslide",9,36,["darkslide"]],["bs_wheelbarrow","BWB","BS Wheelbarrow",7,116,["wheelbarrow"]],["bs_ninebar","BNB","BS Nine Bar",8,36,["ninebar"]],["bs_savannah","BSV","BS Savannah",7,36,["savannah"]],["ts_bynsoul","TBN","Top Byn Soul",4,116,["bynsoul"]],["ufo","UFO","UFO",1,276,["frontside"]],["fastslide","FSL","Fastslide",1,436,["frontside"]],["pudslide","PUD","Pudslide",2,436,["frontside"]],["tabernacle","TAB","Tabernacle",6,276,["acid","frontside"]],["bynsoul","BYN","Byn Soul",3,116,["soul"]],["darkslide","DSL","Darkslide",8,116,["acid","backslide"]],["wheelbarrow","WB","Wheelbarrow",6,116,["royale","backslide"]],["ninebar","NB","Nine Bar",7,196,["wheelbarrow"]]];
+
+// engine constants (PROG_TILE / PROG_TIER_Y0 / PROG_TIER_GAP), Swift anchors at x+16
+const TILE=56, Y0=42, GAP=132, HALF=TILE/2, CLEAR=8;
+const N = RAW.map(([id,glyph,name,tier,x,parents])=>({id,glyph,name,tier,x,parents,
+  cx:x+16, top:Y0+tier*GAP}));
+const BY = Object.fromEntries(N.map(n=>[n.id,n]));
+const byTier = {}; N.forEach(n=>(byTier[n.tier] ||= []).push(n));
+
+const EDGES = [];
+N.forEach(c=>c.parents.forEach(pid=>{
+  const p = BY[pid]; if(p) EDGES.push({p,c,span:c.tier-p.tier});
+}));
+
+/* -- the two routings ------------------------------------------------------- */
+// what ships today: one elbow at the vertical midpoint. For a 1-row hop that
+// midpoint lands in the gutter; for a 2+-row hop it lands inside a tile band.
+function routeCurrent(p,c){
+  const sx=p.cx, sy=p.top+TILE, tx=c.cx, ty=c.top-7, midY=(sy+ty)/2;
+  return [[sx,sy],[sx,midY],[tx,midY],[tx,ty]];
+}
+// proposed: keep every horizontal run in a gutter between rows, and join the two
+// gutters with a vertical lane chosen to miss every tile in the rows between.
+function routeNew(p,c){
+  const sx=p.cx, sy=p.top+TILE, tx=c.cx, ty=c.top-7;
+  if(c.tier-p.tier<=1) return routeCurrent(p,c);
+  const gy1 = p.top+TILE+30;      // gutter just below the parent's row
+  const gy2 = c.top-30;           // gutter just above the child's row
+  const lane = pickLane(p,c,tx);
+  return lane===tx
+    ? [[sx,sy],[sx,gy1],[tx,gy1],[tx,gy2],[tx,ty]]
+    : [[sx,sy],[sx,gy1],[lane,gy1],[lane,gy2],[tx,gy2],[tx,ty]];
+}
+// a lane is free if no tile in any row strictly between parent and child sits on it
+function laneFree(p,c,x){
+  for(let t=p.tier+1;t<c.tier;t++)
+    for(const n of (byTier[t]||[]))
+      if(Math.abs(n.cx-x) < HALF+CLEAR) return false;
+  return true;
+}
+function pickLane(p,c,tx){
+  if(laneFree(p,c,tx)) return tx;              // straight drop already clear
+  let best=null, bestD=Infinity;
+  for(let x=8;x<=692;x+=4){
+    if(!laneFree(p,c,x)) continue;
+    const d=Math.abs(x-tx);
+    if(d<bestD){bestD=d;best=x;}
+  }
+  return best==null?tx:best;                   // nothing free \u2014 fall back
+}
+
+/* -- does a route cross a tile it isn't connected to? ----------------------- */
+function segHitsTile(x1,y1,x2,y2,n){
+  const L=n.cx-HALF, R=n.cx+HALF, T=n.top, B=n.top+TILE;
+  if(x1===x2){ // vertical
+    if(x1<L||x1>R) return false;
+    const a=Math.min(y1,y2), b=Math.max(y1,y2);
+    return b>T && a<B;
+  }
+  if(y1<T||y1>B) return false;                 // horizontal
+  const a=Math.min(x1,x2), b=Math.max(x1,x2);
+  return b>L && a<R;
+}
+function crossings(pts,p,c){
+  const hit=new Set();
+  for(let i=0;i<pts.length-1;i++)
+    for(const n of N){
+      if(n.id===p.id||n.id===c.id) continue;
+      if(segHitsTile(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1],n)) hit.add(n.id);
+    }
+  return hit;
+}
+
+/* -- render ----------------------------------------------------------------- */
+const svg=document.getElementById('svg');
+const el=(t,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);
+  for(const k in a) e.setAttribute(k,a[k]); return e;};
+
+let mode='cur';
+function draw(){
+  const hot=document.getElementById('cHot').checked;
+  const focus=document.getElementById('cFocus').checked;
+  svg.textContent='';
+
+  const maxT=Math.max(...N.map(n=>n.tier));
+  for(let t=0;t<=maxT;t++)
+    svg.appendChild(el('rect',{x:0,y:Y0+t*GAP-13,width:700,height:TILE+26,
+      fill:'currentColor','fill-opacity':.028}));
+
+  const shown = focus ? EDGES.filter(e=>e.p.id==='frontside'&&e.c.id==='pudslide') : EDGES;
+  const crossed=new Set(); let nCross=0;
+
+  shown.forEach(e=>{
+    const pts = mode==='cur' ? routeCurrent(e.p,e.c) : routeNew(e.p,e.c);
+    const hits = crossings(pts,e.p,e.c);
+    if(hits.size){ nCross++; hits.forEach(h=>crossed.add(h)); }
+    const multi=e.span>1;
+    svg.appendChild(el('polyline',{
+      points:pts.map(q=>q.join(',')).join(' '),fill:'none',
+      stroke: hot&&multi ? 'var(--hot)' : 'var(--edge)',
+      'stroke-width': hot&&multi ? 2 : 1.4,
+      'stroke-opacity': hot&&multi ? .95 : .8,
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+    const [tx,ty]=pts[pts.length-1];
+    svg.appendChild(el('polyline',{points:`${tx-4},${ty-4} ${tx},${ty} ${tx+4},${ty-4}`,
+      fill:'none',stroke: hot&&multi?'var(--hot)':'var(--edge)','stroke-width':1.4,
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+  });
+
+  N.forEach(n=>{
+    const bad=crossed.has(n.id);
+    svg.appendChild(el('rect',{x:n.cx-HALF,y:n.top,width:TILE,height:TILE,rx:12,
+      fill:'var(--bg)',stroke:bad?'var(--hot)':'var(--border)','stroke-width':bad?2.5:1.5}));
+    const g=el('text',{x:n.cx,y:n.top+TILE/2+5,'text-anchor':'middle',
+      'font-family':'Iowan Old Style, Georgia, serif','font-weight':'700','font-size':'14',
+      fill:'var(--muted)'}); g.textContent=n.glyph; svg.appendChild(g);
+    const t=el('text',{x:n.cx,y:n.top+TILE+14,'text-anchor':'middle','font-size':'9.5',
+      'font-weight':'600',fill:'var(--muted)'}); t.textContent=n.name; svg.appendChild(t);
+    if(bad){
+      svg.appendChild(el('circle',{cx:n.cx+HALF-4,cy:n.top+4,r:4,fill:'var(--hot)'}));
+    }
+  });
+
+  document.getElementById('count').textContent =
+    `${nCross} of ${shown.length} edges cross a tile \u00b7 ${crossed.size} tiles crossed`;
+  document.getElementById('note').innerHTML = mode==='cur'
+    ? `<b>Current.</b> The elbow bends at the vertical midpoint of the edge. Over one row that
+       midpoint falls in the gutter, which is why most of the tree looks fine. Over two or more
+       rows it falls <em>inside</em> an intermediate row, so the horizontal run slices through
+       that row's tiles and the vertical runs pass behind them. Tiles are drawn on top of the
+       canvas, so what you actually see on the phone is the line appearing in the gaps either
+       side of a tile &mdash; which reads as "this tile connects to that one".`
+    : `<b>Routed.</b> Horizontal runs are pinned to the gutters between rows, never inside a row.
+       The two gutters are joined by a vertical lane picked to clear every tile in the rows
+       between (nearest free lane to the destination, so the route hugs its target). Same
+       elbow style, same arrowheads &mdash; only long edges change, and short ones are
+       untouched.`;
+}
+document.getElementById('bCur').onclick=()=>{mode='cur';
+  bCur.setAttribute('aria-pressed','true'); bNew.setAttribute('aria-pressed','false'); draw();};
+document.getElementById('bNew').onclick=()=>{mode='new';
+  bNew.setAttribute('aria-pressed','true'); bCur.setAttribute('aria-pressed','false'); draw();};
+document.getElementById('cHot').onchange=draw;
+document.getElementById('cFocus').onchange=draw;
+draw();
+</script>
