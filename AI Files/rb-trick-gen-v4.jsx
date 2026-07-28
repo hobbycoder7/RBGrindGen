@@ -992,7 +992,9 @@ const PROG_NODES = [
   { id:'bynsoul',    base:'bynsoul',    parents:[['soul']] },
   { id:'darkslide',  base:'darkslide',  parents:[['acid','backslide']] },          // Acid and Backslide
   { id:'wheelbarrow',base:'wheelbarrow',parents:[['royale'],['backslide']] },      // Royale or Backslide
-  { id:'ninebar',    base:'ninebar',    parents:[['wheelbarrow']] },               // the AO-toe-roll wheelbarrow
+  // the AO-toe-roll wheelbarrow. Root, not a child of Wheelbarrow: per Jim the
+  // unlock gate is removed so it can sit alongside Wheelbarrow rather than under it.
+  { id:'ninebar',    base:'ninebar',    parents:[] },
 ];
 const PROG_BY_ID = Object.fromEntries(PROG_NODES.map(n => [n.id, n]));
 // parent helpers for the group model

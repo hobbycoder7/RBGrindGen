@@ -13,8 +13,8 @@ iOS feature.
 **All trick/tree logic is JavaScript, executed via JavaScriptCore.** Swift owns
 UI and persistence only.
 
-- `RBGrind/Engine/grind_engine.js` — lines 1–1295 are a **byte-identical slice**
-  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1297, current as of
+- `RBGrind/Engine/grind_engine.js` — lines 1–1297 are a **byte-identical slice**
+  of `AI Files/rb-trick-gen-v4.jsx` (source lines 3–1299, current as of
   v4.0). Never edit that region directly; edit the `.jsx` first (it's the
   canonical source), verify there with a `jsc` harness, THEN re-extract. The
   boundary shifts whenever the slice's line count changes — don't assume the

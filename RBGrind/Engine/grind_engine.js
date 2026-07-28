@@ -990,7 +990,9 @@ const PROG_NODES = [
   { id:'bynsoul',    base:'bynsoul',    parents:[['soul']] },
   { id:'darkslide',  base:'darkslide',  parents:[['acid','backslide']] },          // Acid and Backslide
   { id:'wheelbarrow',base:'wheelbarrow',parents:[['royale'],['backslide']] },      // Royale or Backslide
-  { id:'ninebar',    base:'ninebar',    parents:[['wheelbarrow']] },               // the AO-toe-roll wheelbarrow
+  // the AO-toe-roll wheelbarrow. Root, not a child of Wheelbarrow: per Jim the
+  // unlock gate is removed so it can sit alongside Wheelbarrow rather than under it.
+  { id:'ninebar',    base:'ninebar',    parents:[] },
 ];
 const PROG_BY_ID = Object.fromEntries(PROG_NODES.map(n => [n.id, n]));
 // parent helpers for the group model
@@ -1292,6 +1294,7 @@ const fmtDate = (ts) => {
   if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
+
 
 
 
@@ -1665,9 +1668,9 @@ function nativeSelfTest() {
   // 5) empty state: exactly the four roots available, everything else locked
   const empty = new Set();
   const roots = PROG_NODES.filter(n => n.parents.length === 0).map(n => n.id).sort();
-  // bs_backslide is a deliberate 5th root: it sits row 4 beside Full Torque, which
-  // is Backslide's own row, so its unlock gate was removed rather than drawn sideways
-  ok('roots-are-5', JSON.stringify(roots) === JSON.stringify(['bs_backslide', 'frontside', 'makio', 'mizu', 'soul']), roots);
+  // bs_backslide and ninebar are deliberate extra roots — per Jim their unlock gates
+  // were removed so each can sit alongside the tile that used to gate it, not under it
+  ok('roots-are-6', JSON.stringify(roots) === JSON.stringify(['bs_backslide', 'frontside', 'makio', 'mizu', 'ninebar', 'soul']), roots);
   ok('roots-available', roots.every(r => progStateOf(PROG_BY_ID[r], empty, empty) === 'available'));
   ok('nonroots-locked', PROG_NODES.filter(n => n.parents.length > 0).every(n => progStateOf(n, empty, empty) === 'locked'));
 
