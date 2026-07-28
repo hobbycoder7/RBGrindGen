@@ -1078,8 +1078,9 @@ const progEntry = (node) => {
 // Coach-designed 9-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
-//  · Buck Factor — frontside Torque/Full Torque are toe-catch risky on ledges, so
-//    they sit late/right; their backsides are EASIER locks and come right after.
+//  · Buck Factor — frontside Torque is toe-catch risky on ledges, so it sits
+//    late/right; the backsides are EASIER locks and come right after. Full Torque
+//    is the exception: live testing moved it to mid-row 4, ahead of Backslide.
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
 //    front-foot, full-view, low-commit (early). BS Backslide is back-foot,
 //    rotate-and-commit, which SkaMiDan tiers late — but live testing moved it up
@@ -1092,16 +1093,16 @@ const progEntry = (node) => {
 //    Frontside they unlock off. Pudslide stays one row below Fastslide.
 //  · Stability before contortion; topsides gate through the two-footed Topside
 //    Soul / Topside Acid (row 6) — Fishbrain's one-foot topside is more commit,
-//    so it comes after (row 7), per Jim.
+//    so it comes after (row 8), per Jim, now right of BS Tabernacle.
 const PROG_ROWS = [
   ['makio', 'frontside'],
   ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide'],
   ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide'],
-  ['mistrial', 'bynsoul', 'unity', 'backslide', 'bs_backslide', 'farv', 'hotdog'],
+  ['mistrial', 'bynsoul', 'unity', 'farv', 'backslide', 'bs_backslide', 'hotdog'],
   ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
   ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
   ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
-  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'darkslide', 'misfit'],
+  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'bs_tabernacle', 'fishbrain', 'cloudynight', 'darkslide', 'misfit'],
   ['bs_darkslide', 'bs_ninebar'],
 ];
 const PROG_PINNED_TIER = {};
@@ -1290,6 +1291,8 @@ const fmtDate = (ts) => {
   if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
+
+
 
 
 
