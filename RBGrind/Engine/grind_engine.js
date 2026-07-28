@@ -944,7 +944,9 @@ const PROG_NODES = [
   { id:'mistrial',   base:'mistrial',   parents:[['mizu','acid'],['pornstar']] },  // (Mizu & Acid) or Pornstar
   { id:'torquesoul', base:'torquesoul', parents:[['soul'],['farv']] },             // Soul or Full Torque
   { id:'teakettle',  base:'teakettle',  parents:[['pornstar']] },
-  { id:'hotdog',     base:'hotdog',     parents:[['soul']] },
+  // Root, not a child of Soul: per Jim the gate is removed so it can sit level
+  // with Soul rather than under it. Same call as Nine Bar and BS Backslide.
+  { id:'hotdog',     base:'hotdog',     parents:[] },
   // topside tiles (pose hubs — drawer holds that pose's spins). Skip X-Grind & Hot Dog (no topside).
   { id:'fishbrain',    base:'makio',      flags:{ topside:true }, parents:[['makio']] },
   { id:'sweatstance',  base:'mizu',       flags:{ topside:true }, parents:[['mizu']] },
@@ -1077,7 +1079,7 @@ const progEntry = (node) => {
 
 // tier = longest path from any root (so a node sits below ALL its parents)
 // ── hand-authored layout (Jim's worksheet) ────────────────────────────────────
-// Coach-designed 9-row curriculum (all 51 tiles pinned; left→right = easiest→
+// Coach-designed 8-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
 //  · Buck factor (toe-catch risk on ledges) is deliberately NOT an ordering
@@ -1086,27 +1088,30 @@ const progEntry = (node) => {
 //    push a trick right. Order on lock difficulty instead.
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
 //    front-foot, full-view, low-commit (early). BS Backslide is back-foot,
-//    rotate-and-commit, which SkaMiDan tiers late — but live testing moved it up
-//    beside Full Torque (row 4). That is Backslide's own row, so per Jim the
-//    Backslide gate is removed and it stands as a root rather than being drawn
-//    as a sideways edge from a tile alongside it.
+//    rotate-and-commit, which SkaMiDan tiers late.
+//  · UNGATED ROOTS, per Jim, all deliberate: BS Backslide, Nine Bar and Hot Dog
+//    each had their unlock gate removed so they could sit level with the tile
+//    that used to gate them (Backslide, Wheelbarrow, Soul) instead of that edge
+//    being drawn sideways across a row. They are available from the start. Seven
+//    roots total with Makio/Soul/Mizu/Frontside — don't "fix" the missing
+//    parents; the self-test pins the exact set.
 //  · Fastslide/Pudslide are friction slides, not locked grinds, and SkaMiDan
 //    tiers them hardest — but live testing put them early in practice, so per
 //    Jim they sit right of Royale (row 1) and BS Royale (row 2), close to the
 //    Frontside they unlock off. Pudslide stays one row below Fastslide.
-//  · Stability before contortion; topsides gate through the two-footed Topside
-//    Soul / Topside Acid (row 6) — Fishbrain's one-foot topside is more commit,
-//    so it comes after (row 8), per Jim, now right of BS Tabernacle.
+//  · Stability before contortion. NOTE the earlier "topsides gate through the
+//    two-footed Topside Soul / Topside Acid, Fishbrain after" rule no longer
+//    describes this layout: Fishbrain now shares row 3 with Topside Soul and
+//    lands one row AHEAD of Topside Acid. Left as Jim placed it.
 const PROG_ROWS = [
   ['makio', 'frontside'],
-  ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide'],
-  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide'],
-  ['mistrial', 'bynsoul', 'unity', 'farv', 'backslide', 'bs_backslide', 'hotdog'],
-  ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
-  ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
-  ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
-  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'bs_tabernacle', 'fishbrain', 'cloudynight', 'darkslide', 'misfit'],
-  ['bs_darkslide', 'bs_ninebar'],
+  ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide', 'hotdog'],
+  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide', 'stubsoul'],
+  ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'fishbrain', 'ts_soul'],
+  ['torquesoul', 'ts_bynsoul', 'bs_unity', 'ts_acid', 'bs_farv', 'torque_g', 'teakettle'],
+  ['ts_torquesoul', 'cabdriver', 'sunnyday', 'sweatstance', 'bs_torque', 'kindgrind', 'bs_backslide'],
+  ['savannah', 'wheelbarrow', 'ninebar', 'tabernacle', 'bs_cabdriver', 'overpuss', 'darkslide'],
+  ['bs_savannah', 'bs_wheelbarrow', 'bs_ninebar', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_darkslide'],
 ];
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};
@@ -1294,6 +1299,7 @@ const fmtDate = (ts) => {
   if(diff===0) return 'Today'; if(diff===1) return 'Yesterday';
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 };
+
 
 
 
@@ -1656,7 +1662,7 @@ function nativeSelfTest() {
 
   // 3) tree shape: 51 nodes, 10 rows, every node pinned
   ok('node-count-51', PROG_NODES.length === 51, PROG_NODES.length);
-  ok('rows-9', PROG_ROWS.length === 9, PROG_ROWS.length);
+  ok('rows-8', PROG_ROWS.length === 8, PROG_ROWS.length);
   ok('rows-cover-all-51', PROG_ROWS.flat().length === PROG_NODES.length && PROG_NODES.every(n => PROG_PINNED_TIER[n.id] != null));
 
   // 4) zero sig / glyph collisions
@@ -1668,9 +1674,9 @@ function nativeSelfTest() {
   // 5) empty state: exactly the four roots available, everything else locked
   const empty = new Set();
   const roots = PROG_NODES.filter(n => n.parents.length === 0).map(n => n.id).sort();
-  // bs_backslide and ninebar are deliberate extra roots — per Jim their unlock gates
+  // bs_backslide, ninebar and hotdog are deliberate extra roots — per Jim their unlock gates
   // were removed so each can sit alongside the tile that used to gate it, not under it
-  ok('roots-are-6', JSON.stringify(roots) === JSON.stringify(['bs_backslide', 'frontside', 'makio', 'mizu', 'ninebar', 'soul']), roots);
+  ok('roots-are-7', JSON.stringify(roots) === JSON.stringify(['bs_backslide', 'frontside', 'hotdog', 'makio', 'mizu', 'ninebar', 'soul']), roots);
   ok('roots-available', roots.every(r => progStateOf(PROG_BY_ID[r], empty, empty) === 'available'));
   ok('nonroots-locked', PROG_NODES.filter(n => n.parents.length > 0).every(n => progStateOf(n, empty, empty) === 'locked'));
 
