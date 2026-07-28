@@ -1081,22 +1081,24 @@ const progEntry = (node) => {
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
 //    front-foot, full-view, low-commit (early); BS Backslide is back-foot,
 //    rotate-and-commit (late, advanced per SkaMiDan).
-//  · Fastslide/Pudslide are friction slides, not locked grinds — SkaMiDan hardest
-//    tier, so they live at row 10 despite unlocking off Frontside.
+//  · Fastslide/Pudslide are friction slides, not locked grinds, and SkaMiDan
+//    tiers them hardest — but live testing put them early in practice, so per
+//    Jim they sit right of Royale (row 1) and BS Royale (row 2), close to the
+//    Frontside they unlock off. Pudslide stays one row below Fastslide.
 //  · Stability before contortion; topsides gate through the two-footed Topside
 //    Soul / Topside Acid (row 6) — Fishbrain's one-foot topside is more commit,
 //    so it comes after (row 7), per Jim.
 const PROG_ROWS = [
   ['makio', 'frontside'],
-  ['soul', 'backside', 'mizu', 'ufo', 'royale'],
-  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale'],
+  ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide'],
+  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide'],
   ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'hotdog'],
   ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
   ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
   ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
   ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_backslide'],
-  ['bs_ninebar', 'darkslide', 'fastslide'],
-  ['bs_darkslide', 'pudslide'],
+  ['bs_ninebar', 'darkslide'],
+  ['bs_darkslide'],
 ];
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};
@@ -1288,7 +1290,7 @@ const fmtDate = (ts) => {
 
 // NATIVE BRIDGE (iOS) — appended below the untouched engine slice.
 // Everything above this line is byte-identical to rb-trick-gen-v4.jsx
-// lines 3–1289. Everything below is the Swift↔JS boundary: each function
+// lines 3–1291. Everything below is the Swift↔JS boundary: each function
 // takes and returns JSON strings. Swift owns persistence and UI; this layer
 // owns engine calls AND the list-mutation invariants (landed/working/skipped
 // exclusivity), ported verbatim from the web App() handlers.
