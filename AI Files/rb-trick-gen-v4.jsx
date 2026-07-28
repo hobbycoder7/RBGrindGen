@@ -946,7 +946,9 @@ const PROG_NODES = [
   { id:'mistrial',   base:'mistrial',   parents:[['mizu','acid'],['pornstar']] },  // (Mizu & Acid) or Pornstar
   { id:'torquesoul', base:'torquesoul', parents:[['soul'],['farv']] },             // Soul or Full Torque
   { id:'teakettle',  base:'teakettle',  parents:[['pornstar']] },
-  { id:'hotdog',     base:'hotdog',     parents:[['soul']] },
+  // Root, not a child of Soul: per Jim the gate is removed so it can sit level
+  // with Soul rather than under it. Same call as Nine Bar and BS Backslide.
+  { id:'hotdog',     base:'hotdog',     parents:[] },
   // topside tiles (pose hubs — drawer holds that pose's spins). Skip X-Grind & Hot Dog (no topside).
   { id:'fishbrain',    base:'makio',      flags:{ topside:true }, parents:[['makio']] },
   { id:'sweatstance',  base:'mizu',       flags:{ topside:true }, parents:[['mizu']] },
@@ -970,7 +972,9 @@ const PROG_NODES = [
   { id:'unity',      base:'unity',      parents:[['pornstar']] },
   { id:'savannah',   base:'savannah',   parents:[['unity']] },                     // Savannah (its own base) ← Unity
   // backside tiles + hubs — each unlocks from its own base grind (do the base, unlock its backside)
-  { id:'bs_backslide', base:'backslide', flags:{ backside:true }, parents:[['backslide']] },
+  // Root, not a child of Backslide: Jim placed it row 4 beside Full Torque, which
+  // is Backslide's own row, so the gate was removed rather than drawn sideways.
+  { id:'bs_backslide', base:'backslide', flags:{ backside:true }, parents:[] },
   { id:'bs_farv',      base:'farv',      flags:{ backside:true }, parents:[['farv']] },
   { id:'bs_torque',    base:'torque_g',  flags:{ backside:true }, parents:[['torque_g']] },
   { id:'bs_unity',     base:'unity',     flags:{ backside:true }, parents:[['unity']] },
@@ -990,7 +994,9 @@ const PROG_NODES = [
   { id:'bynsoul',    base:'bynsoul',    parents:[['soul']] },
   { id:'darkslide',  base:'darkslide',  parents:[['acid','backslide']] },          // Acid and Backslide
   { id:'wheelbarrow',base:'wheelbarrow',parents:[['royale'],['backslide']] },      // Royale or Backslide
-  { id:'ninebar',    base:'ninebar',    parents:[['wheelbarrow']] },               // the AO-toe-roll wheelbarrow
+  // the AO-toe-roll wheelbarrow. Root, not a child of Wheelbarrow: per Jim the
+  // unlock gate is removed so it can sit alongside Wheelbarrow rather than under it.
+  { id:'ninebar',    base:'ninebar',    parents:[] },
 ];
 const PROG_BY_ID = Object.fromEntries(PROG_NODES.map(n => [n.id, n]));
 // parent helpers for the group model
@@ -1075,30 +1081,39 @@ const progEntry = (node) => {
 
 // tier = longest path from any root (so a node sits below ALL its parents)
 // ── hand-authored layout (Jim's worksheet) ────────────────────────────────────
-// Coach-designed 11-row curriculum (all 51 tiles pinned; left→right = easiest→
+// Coach-designed 8-row curriculum (all 51 tiles pinned; left→right = easiest→
 // riskiest within each row). Difficulty from community consensus (SkaMiDan tiers,
 // Book of Grinds, ZeroGravity) + Jim's coaching principles:
-//  · Buck Factor — frontside Torque/Full Torque are toe-catch risky on ledges, so
-//    they sit late/right; their backsides are EASIER locks and come right after.
+//  · Buck factor (toe-catch risk on ledges) is deliberately NOT an ordering
+//    principle, per Jim: by the rows where it would apply the skater is already
+//    intermediate and knows what they're getting into, so risk alone doesn't
+//    push a trick right. Order on lock difficulty instead.
 //  · Lock difficulty over "blindness" — BS Torque/BS Full Torque/BS Cab Driver are
-//    front-foot, full-view, low-commit (early); BS Backslide is back-foot,
-//    rotate-and-commit (late, advanced per SkaMiDan).
-//  · Fastslide/Pudslide are friction slides, not locked grinds — SkaMiDan hardest
-//    tier, so they live at row 10 despite unlocking off Frontside.
-//  · Stability before contortion; topsides gate through the two-footed Topside
-//    Soul / Topside Acid (row 6) — Fishbrain's one-foot topside is more commit,
-//    so it comes after (row 7), per Jim.
+//    front-foot, full-view, low-commit (early). BS Backslide is back-foot,
+//    rotate-and-commit, which SkaMiDan tiers late.
+//  · UNGATED ROOTS, per Jim, all deliberate: BS Backslide, Nine Bar and Hot Dog
+//    each had their unlock gate removed so they could sit level with the tile
+//    that used to gate them (Backslide, Wheelbarrow, Soul) instead of that edge
+//    being drawn sideways across a row. They are available from the start. Seven
+//    roots total with Makio/Soul/Mizu/Frontside — don't "fix" the missing
+//    parents; the self-test pins the exact set.
+//  · Fastslide/Pudslide are friction slides, not locked grinds, and SkaMiDan
+//    tiers them hardest — but live testing put them early in practice, so per
+//    Jim they sit right of Royale (row 1) and BS Royale (row 2), close to the
+//    Frontside they unlock off. Pudslide stays one row below Fastslide.
+//  · Stability before contortion. NOTE the earlier "topsides gate through the
+//    two-footed Topside Soul / Topside Acid, Fishbrain after" rule no longer
+//    describes this layout: Fishbrain now shares row 3 with Topside Soul and
+//    lands one row AHEAD of Topside Acid. Left as Jim placed it.
 const PROG_ROWS = [
   ['makio', 'frontside'],
-  ['soul', 'backside', 'mizu', 'ufo', 'royale'],
-  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale'],
-  ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'hotdog'],
-  ['torquesoul', 'ts_bynsoul', 'bs_unity', 'torque_g', 'bs_farv', 'stubsoul'],
-  ['ts_torquesoul', 'ts_soul', 'ts_acid', 'bs_torque', 'cabdriver', 'sunnyday', 'kindgrind'],
-  ['savannah', 'wheelbarrow', 'teakettle', 'tabernacle', 'bs_cabdriver', 'overpuss', 'sweatstance'],
-  ['bs_savannah', 'bs_wheelbarrow', 'ninebar', 'fishbrain', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_backslide'],
-  ['bs_ninebar', 'darkslide', 'fastslide'],
-  ['bs_darkslide', 'pudslide'],
+  ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide', 'hotdog'],
+  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide', 'stubsoul'],
+  ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'fishbrain', 'ts_soul'],
+  ['torquesoul', 'ts_bynsoul', 'bs_unity', 'ts_acid', 'bs_farv', 'torque_g', 'teakettle'],
+  ['ts_torquesoul', 'cabdriver', 'sunnyday', 'sweatstance', 'bs_torque', 'kindgrind', 'bs_backslide'],
+  ['savannah', 'wheelbarrow', 'ninebar', 'tabernacle', 'bs_cabdriver', 'overpuss', 'darkslide'],
+  ['bs_savannah', 'bs_wheelbarrow', 'bs_ninebar', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_darkslide'],
 ];
 const PROG_PINNED_TIER = {};
 const PROG_PINNED_ORDER = {};

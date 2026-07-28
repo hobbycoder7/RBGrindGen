@@ -1,0 +1,358 @@
+<title>RB Grind &mdash; Row Layout Tool</title>
+<style>
+  /* Palette is RB Grind's own C object / Theme.swift, not a new one &mdash; this tool
+     is judging tiles that render in the app, so it should look like the app.
+     Glyph face is Iowan Old Style, the same face the tree uses; it resolves
+     natively on iOS/macOS, so no webfont (and no blocked CDN request). */
+  :root{
+    --ground:#F5F0E8; --surface:#EDE8DC; --sunk:#E3DDCE; --line:#D9D3C7;
+    --ink:#0D0B08; --muted:#6B6455; --accent:#1A3FD4; --accent-soft:#E8EDFF;
+    --alert:#B0554E; --alert-soft:#EFDCD8; --ok:#2E7D4F;
+    --lift:0 6px 16px rgba(26,63,212,.28);
+    --glyph:"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#17150F; --surface:#211E16; --sunk:#1B1912; --line:#3A3427;
+      --ink:#F2EDE2; --muted:#A79E88; --accent:#8098F7; --accent-soft:#232A47;
+      --alert:#D98077; --alert-soft:#3A241F; --ok:#6FBF8F;
+      --lift:0 6px 16px rgba(128,152,247,.22);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#17150F; --surface:#211E16; --sunk:#1B1912; --line:#3A3427;
+    --ink:#F2EDE2; --muted:#A79E88; --accent:#8098F7; --accent-soft:#232A47;
+    --alert:#D98077; --alert-soft:#3A241F; --ok:#6FBF8F;
+    --lift:0 6px 16px rgba(128,152,247,.22);
+  }
+  :root[data-theme="light"]{
+    --ground:#F5F0E8; --surface:#EDE8DC; --sunk:#E3DDCE; --line:#D9D3C7;
+    --ink:#0D0B08; --muted:#6B6455; --accent:#1A3FD4; --accent-soft:#E8EDFF;
+    --alert:#B0554E; --alert-soft:#EFDCD8; --ok:#2E7D4F;
+    --lift:0 6px 16px rgba(26,63,212,.28);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);
+    font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+  .page{max-width:900px;margin:0 auto;padding:0 12px 96px}
+
+  header{position:sticky;top:0;z-index:20;background:var(--ground);
+    border-bottom:1px solid var(--line);padding:14px 12px 10px;margin:0 -12px 14px}
+  h1{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .lede{font-size:12.5px;color:var(--muted);margin:3px 0 0;max-width:60ch}
+  .tools{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;align-items:center}
+
+  button{font:inherit;font-size:13px;font-weight:700;padding:9px 13px;border-radius:9px;
+    border:1.5px solid var(--line);background:var(--ground);color:var(--ink);
+    cursor:pointer;min-height:40px}
+  button:hover{border-color:var(--accent)}
+  button:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.small{min-height:30px;padding:3px 9px;font-size:11.5px}
+
+  .tally{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;
+    letter-spacing:.03em;color:var(--muted);margin-left:auto}
+  .tally.bad{color:var(--alert)}
+
+  /* held-tile banner &mdash; the whole interaction hinges on knowing what you're carrying */
+  .held{display:none;align-items:center;gap:10px;margin-top:9px;padding:8px 10px;
+    background:var(--accent);color:#fff;border-radius:10px;font-size:13px;font-weight:700}
+  .held.on{display:flex}
+  .held button{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;
+    min-height:32px;padding:5px 11px;font-size:12px;margin-left:auto}
+
+  .flag{margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:12.5px;
+    background:var(--alert-soft);border:1px solid var(--alert);color:var(--alert);font-weight:600}
+  .flag[hidden]{display:none}
+  .flag b{display:block;margin-bottom:3px}
+  .flag ul{margin:4px 0 0;padding-left:17px}
+
+  .rowhead{display:flex;align-items:center;gap:8px;margin:0 0 5px}
+  .rownum{font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--muted)}
+  .rowcount{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .band{display:flex;flex-wrap:wrap;align-items:stretch;gap:1px;background:var(--surface);
+    border:1px dashed var(--line);border-radius:11px;padding:7px 5px;margin-bottom:14px;
+    min-height:92px}
+
+  .caret{width:7px;align-self:stretch;min-height:74px;border-radius:4px;
+    background:transparent;border:0;padding:0;cursor:default}
+  body.holding .caret{width:26px;background:var(--accent-soft);cursor:pointer}
+  body.holding .caret:hover,body.holding .caret:focus-visible{background:var(--accent)}
+
+  .tile{width:70px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:4px 2px;border:0;background:transparent;border-radius:9px;cursor:pointer;
+    font:inherit;color:inherit;min-height:auto}
+  .tile:hover{border-color:transparent}
+  .tile .box{width:54px;height:54px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center;background:var(--accent-soft);border:2px solid var(--accent);
+    font-family:var(--glyph);font-weight:700;font-size:14px;color:var(--accent)}
+  .tile .nm{font-size:9.5px;font-weight:700;text-align:center;line-height:1.15;
+    text-wrap:balance}
+  .tile .pa{font-size:8px;color:var(--muted);text-align:center;line-height:1.1}
+  .tile.up{background:var(--accent);box-shadow:var(--lift);transform:translateY(-3px)}
+  .tile.up .box{background:#fff;border-color:#fff;color:var(--accent)}
+  .tile.up .nm,.tile.up .pa{color:#fff}
+  .tile.bad .box{border-color:var(--alert);color:var(--alert);background:var(--alert-soft)}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:13px;margin-bottom:14px}
+  .panel[hidden]{display:none}
+  .panel h2{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 8px}
+  textarea{width:100%;min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12.5px;padding:10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--ground);color:var(--ink);resize:vertical}
+  .panelbar{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+  .msg{font-size:12px;font-weight:700}
+  .msg.ok{color:var(--ok)} .msg.no{color:var(--alert)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;transform:none!important}}
+</style>
+
+<div class="page">
+  <header>
+    <h1>RB Grind &mdash; Row Layout Tool</h1>
+    <p class="lede">Tap a tile to pick it up, then tap a gap to drop it. Small text under
+      each tile is what unlocks it. Export when it looks right and paste it back to Claude.</p>
+    <div class="tools">
+      <button id="add">Add row</button>
+      <button id="reset">Reset</button>
+      <button id="imp">Import</button>
+      <button id="exp" class="primary">Export</button>
+      <span class="tally" id="tally"></span>
+    </div>
+    <div class="held" id="held">
+      <span id="heldName"></span>
+      <button id="cancel">Cancel</button>
+    </div>
+  </header>
+
+  <div class="flag" id="flag" hidden></div>
+
+  <section class="panel" id="impPanel" hidden>
+    <h2>Import &mdash; paste a PROG_ROWS block</h2>
+    <textarea id="impText" placeholder="const PROG_ROWS = [
+  ['makio', 'frontside'],
+  ...
+];"></textarea>
+    <div class="panelbar">
+      <button class="primary" id="impLoad">Load layout</button>
+      <span class="msg" id="impMsg"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="expPanel" hidden>
+    <h2>Export &mdash; paste this back to Claude</h2>
+    <textarea id="expText" readonly></textarea>
+    <div class="panelbar">
+      <button id="copy">Copy</button>
+      <span class="msg ok" id="copyMsg"></span>
+    </div>
+  </section>
+
+  <div id="rows"></div>
+</div>
+
+<script>
+const T=[["makio","MAK","Makio","",[]],["soul","SOL","Soul","",[]],["mizu","MIZ","Mizu","",[]],["acid","ACD","Acid","Soul",["soul"]],["xgrind","XGR","X-Grind","Soul",["soul"]],["stubsoul","SS","Stub Soul","Soul",["soul"]],["pornstar","PRN","Pornstar","Mizu",["mizu"]],["mistrial","MIS","Mistrial","Mizu + Acid or Pornstar",["mizu","acid","pornstar"]],["torquesoul","TQS","Torque Soul","Soul or Full Torque",["soul","farv"]],["teakettle","TEA","Tea Kettle","Pornstar",["pornstar"]],["hotdog","HTD","Hot Dog","",[]],["fishbrain","FSH","Fishbrain","Makio",["makio"]],["sweatstance","SWT","Sweatstance","Mizu",["mizu"]],["overpuss","TM","Top Mistrial","Mistrial",["mistrial"]],["sunnyday","TP","Top Pornstar","Pornstar",["pornstar"]],["kindgrind","KND","Kindgrind","Mizu",["mizu"]],["misfit","ATM","AO Top Mistrial","Top Mistrial",["overpuss"]],["cloudynight","ATP","AO Top Pornstar","Top Pornstar",["sunnyday"]],["ts_soul","TS","Top Soul","Soul",["soul"]],["ts_acid","TA","Top Acid","Acid",["acid"]],["ts_torquesoul","TTS","Top Torque Soul","Torque Soul",["torquesoul"]],["frontside","FS","Frontside","",[]],["backside","BS","Backside","Frontside",["frontside"]],["royale","ROY","Royale","Frontside",["frontside"]],["farv","FTQ","Full Torque","Frontside",["frontside"]],["backslide","BSL","Backslide","Royale",["royale"]],["torque_g","TRQ","Torque","Full Torque",["farv"]],["cabdriver","CAB","Cab Driver","Backslide or Torque",["backslide","torque_g"]],["unity","UNI","Unity","Pornstar",["pornstar"]],["savannah","SAV","Savannah","Unity",["unity"]],["bs_backslide","BSB","BS Backslide","",[]],["bs_farv","BFT","BS Full Torque","Full Torque",["farv"]],["bs_torque","BTQ","BS Torque","Torque",["torque_g"]],["bs_unity","BUN","BS Unity","Unity",["unity"]],["bs_royale","BRO","BS Royale","Royale",["royale"]],["bs_cabdriver","BCD","BS Cab Driver","Cab Driver",["cabdriver"]],["bs_ufo","BFO","BS UFO","UFO",["ufo"]],["bs_tabernacle","BTB","BS Tabernacle","Tabernacle",["tabernacle"]],["bs_darkslide","BDS","BS Darkslide","Darkslide",["darkslide"]],["bs_wheelbarrow","BWB","BS Wheelbarrow","Wheelbarrow",["wheelbarrow"]],["bs_ninebar","BNB","BS Nine Bar","Nine Bar",["ninebar"]],["bs_savannah","BSV","BS Savannah","Savannah",["savannah"]],["ts_bynsoul","TBN","Top Byn Soul","Byn Soul",["bynsoul"]],["ufo","UFO","UFO","Frontside",["frontside"]],["fastslide","FSL","Fastslide","Frontside",["frontside"]],["pudslide","PUD","Pudslide","Frontside",["frontside"]],["tabernacle","TAB","Tabernacle","Acid + Frontside",["acid","frontside"]],["bynsoul","BYN","Byn Soul","Soul",["soul"]],["darkslide","DSL","Darkslide","Acid + Backslide",["acid","backslide"]],["wheelbarrow","WB","Wheelbarrow","Royale or Backslide",["royale","backslide"]],["ninebar","NB","Nine Bar","",[]]];
+const R0=[
+  ['makio', 'frontside'],
+  ['soul', 'backside', 'mizu', 'ufo', 'royale', 'fastslide', 'hotdog'],
+  ['acid', 'xgrind', 'pornstar', 'bs_ufo', 'bs_royale', 'pudslide', 'stubsoul'],
+  ['mistrial', 'bynsoul', 'unity', 'backslide', 'farv', 'fishbrain', 'ts_soul'],
+  ['torquesoul', 'ts_bynsoul', 'bs_unity', 'ts_acid', 'bs_farv', 'torque_g', 'teakettle'],
+  ['ts_torquesoul', 'cabdriver', 'sunnyday', 'sweatstance', 'bs_torque', 'kindgrind', 'bs_backslide'],
+  ['savannah', 'wheelbarrow', 'ninebar', 'tabernacle', 'bs_cabdriver', 'overpuss', 'darkslide'],
+  ['bs_savannah', 'bs_wheelbarrow', 'bs_ninebar', 'bs_tabernacle', 'cloudynight', 'misfit', 'bs_darkslide'],
+];
+
+const TILE = Object.fromEntries(T.map(t => [t[0], {id:t[0],glyph:t[1],name:t[2],parents:t[3],pids:t[4]}]));
+const ALL = T.map(t => t[0]);
+const KEY = 'rbgrind.progrows.v1';
+
+let rows = load() || R0.map(r => r.slice());
+let held = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return null;
+    const v = JSON.parse(raw);
+    return Array.isArray(v) && v.flat().length ? v : null;
+  }catch(e){ return null; }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(rows)); }catch(e){} }
+
+/* placing a tile at/above one of its own parents makes the app draw an edge that
+   climbs the tree \u2014 the export would look fine and the tree would not, so flag it here */
+function problems(){
+  const at = {};
+  rows.forEach((r,i) => r.forEach(id => { at[id] = i; }));
+  const out = [];
+  ALL.forEach(id => {
+    if(at[id] == null) return;
+    TILE[id].pids.forEach(p => {
+      if(at[p] != null && at[p] >= at[id])
+        out.push(`${TILE[id].name} (row ${at[id]+1}) sits at or above ${TILE[p].name} (row ${at[p]+1}), which unlocks it`);
+    });
+  });
+  return out;
+}
+
+function place(id, r, i){
+  let fr=-1, fi=-1;
+  for(let x=0;x<rows.length;x++){ const k=rows[x].indexOf(id); if(k>=0){fr=x;fi=k;break;} }
+  if(fr<0) return;
+  rows[fr].splice(fi,1);
+  let at = i;
+  if(fr===r && fi<i) at--;
+  rows[r].splice(at,0,id);
+  held = null;
+  render();
+}
+function pick(id){
+  if(held===id){ held=null; }
+  else if(held){
+    for(let r=0;r<rows.length;r++){ const k=rows[r].indexOf(id); if(k>=0) return place(held,r,k); }
+  } else held = id;
+  render();
+}
+
+function render(){
+  const host = document.getElementById('rows');
+  host.textContent = '';
+  document.body.classList.toggle('holding', !!held);
+
+  rows.forEach((row, r) => {
+    const head = document.createElement('div');
+    head.className = 'rowhead';
+    const n = document.createElement('span');
+    n.className='rownum'; n.textContent = 'ROW ' + (r+1);
+    const c = document.createElement('span');
+    c.className='rowcount'; c.textContent = '\u00b7 ' + row.length + (row.length===1?' tile':' tiles');
+    head.append(n,c);
+    if(!row.length){
+      const del = document.createElement('button');
+      del.className='small'; del.textContent='Remove empty row';
+      del.onclick = () => { rows.splice(r,1); save(); render(); };
+      head.append(del);
+    }
+
+    const band = document.createElement('div');
+    band.className = 'band';
+    band.append(caret(r,0));
+    row.forEach((id,i) => { band.append(tile(id), caret(r,i+1)); });
+
+    host.append(head, band);
+  });
+
+  const flat = rows.flat();
+  const missing = ALL.filter(id => !flat.includes(id));
+  const tally = document.getElementById('tally');
+  tally.textContent = flat.length + '/' + ALL.length + ' placed';
+  tally.classList.toggle('bad', flat.length !== ALL.length || missing.length > 0);
+
+  const probs = problems();
+  const flag = document.getElementById('flag');
+  if(probs.length || missing.length){
+    flag.hidden = false;
+    flag.textContent = '';
+    const b = document.createElement('b');
+    b.textContent = missing.length
+      ? missing.length + ' tile' + (missing.length>1?'s are':' is') + ' not placed'
+      : probs.length + ' tile' + (probs.length>1?'s sit':' sits') + ' above what unlocks ' + (probs.length>1?'them':'it');
+    const ul = document.createElement('ul');
+    (missing.length ? missing.map(id=>TILE[id].name) : probs).forEach(t => {
+      const li = document.createElement('li'); li.textContent = t; ul.append(li);
+    });
+    flag.append(b, ul);
+  } else flag.hidden = true;
+
+  const heldBar = document.getElementById('held');
+  heldBar.classList.toggle('on', !!held);
+  if(held) document.getElementById('heldName').textContent = 'Holding ' + TILE[held].name + ' \u2014 tap a gap to drop it';
+
+  document.getElementById('expText').value = serialize();
+  save();
+}
+
+function tile(id){
+  const t = TILE[id];
+  const b = document.createElement('button');
+  b.className = 'tile' + (held===id ? ' up' : '');
+  b.setAttribute('aria-pressed', held===id ? 'true' : 'false');
+  b.onclick = () => pick(id);
+  const box = document.createElement('span');
+  box.className='box'; box.textContent = t.glyph;
+  const nm = document.createElement('span');
+  nm.className='nm'; nm.textContent = t.name;
+  b.append(box, nm);
+  if(t.parents){
+    const pa = document.createElement('span');
+    pa.className='pa'; pa.textContent = '\u2190 ' + t.parents;
+    b.append(pa);
+  }
+  return b;
+}
+function caret(r,i){
+  const c = document.createElement('button');
+  c.className='caret'; c.tabIndex = held ? 0 : -1;
+  c.setAttribute('aria-label','Drop here, row '+(r+1)+' position '+(i+1));
+  c.onclick = () => { if(held) place(held,r,i); };
+  return c;
+}
+
+function serialize(){
+  return 'const PROG_ROWS = [\n' +
+    rows.map(r => '  [' + r.map(id => "'"+id+"'").join(', ') + '],').join('\n') + '\n];';
+}
+
+document.getElementById('add').onclick = () => { rows.push([]); render(); };
+document.getElementById('reset').onclick = () => { rows = R0.map(r=>r.slice()); held=null; render(); };
+document.getElementById('cancel').onclick = () => { held=null; render(); };
+document.getElementById('exp').onclick = () => {
+  const p = document.getElementById('expPanel');
+  p.hidden = !p.hidden; document.getElementById('impPanel').hidden = true;
+};
+document.getElementById('imp').onclick = () => {
+  const p = document.getElementById('impPanel');
+  p.hidden = !p.hidden; document.getElementById('expPanel').hidden = true;
+};
+document.getElementById('copy').onclick = async () => {
+  const msg = document.getElementById('copyMsg');
+  const ta = document.getElementById('expText');
+  try{ await navigator.clipboard.writeText(ta.value); msg.textContent='Copied'; }
+  catch(e){ ta.select(); msg.textContent='Selected \u2014 press copy'; }
+  setTimeout(()=>{ msg.textContent=''; }, 2200);
+};
+document.getElementById('impLoad').onclick = () => {
+  const msg = document.getElementById('impMsg');
+  const text = document.getElementById('impText').value;
+  const parsed = [...text.matchAll(/\[([^\[\]]*)\]/g)]
+    .map(m => [...m[1].matchAll(/['"]([a-zA-Z0-9_]+)['"]/g)].map(x => x[1]))
+    .filter(r => r.length);
+  msg.className = 'msg no';
+  if(!parsed.length){ msg.textContent = "No rows found \u2014 paste the PROG_ROWS array."; return; }
+  const flat = parsed.flat();
+  const unknown = flat.filter(id => !TILE[id]);
+  if(unknown.length){ msg.textContent = 'Unknown tile: ' + unknown.join(', ') + ' \u2014 nothing loaded.'; return; }
+  const seen = new Set(), dupes = new Set();
+  flat.forEach(id => { if(seen.has(id)) dupes.add(id); seen.add(id); });
+  if(dupes.size){ msg.textContent = 'Listed twice: ' + [...dupes].join(', ') + ' \u2014 nothing loaded.'; return; }
+  const missing = ALL.filter(id => !flat.includes(id));
+  rows = parsed.map(r => r.slice());
+  if(missing.length) rows.push(missing);
+  held = null;
+  msg.className = 'msg ok';
+  msg.textContent = missing.length
+    ? 'Loaded. ' + missing.length + ' missing tile' + (missing.length>1?'s':'') + ' added as a last row so nothing is lost.'
+    : 'Loaded \u2014 all ' + ALL.length + ' tiles placed.';
+  document.getElementById('impText').value = '';
+  render();
+};
+document.addEventListener('keydown', e => { if(e.key==='Escape' && held){ held=null; render(); } });
+
+render();
+</script>

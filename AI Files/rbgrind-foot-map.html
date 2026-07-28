@@ -1,0 +1,296 @@
+<title>RB Grind &mdash; Foot Plate Map</title>
+<style>
+  /* RB Grind's own palette (C object / Theme.swift), so this reads as part of
+     the project. Iowan Old Style is the tree's glyph face and resolves natively
+     on iOS/macOS &mdash; no webfont, no blocked CDN request. */
+  :root{
+    --ground:#F5F0E8; --surface:#EDE8DC; --sunk:#E3DDCE; --line:#D9D3C7;
+    --ink:#0D0B08; --muted:#6B6455; --accent:#1A3FD4; --accent-soft:#E8EDFF;
+    --soul:#1A3FD4; --soul-soft:#E8EDFF;
+    --groove:#8A5A1E; --groove-soft:#F4E9D8;
+    --alert:#B0554E; --ok:#2E7D4F;
+    --glyph:"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#17150F; --surface:#211E16; --sunk:#1B1912; --line:#3A3427;
+      --ink:#F2EDE2; --muted:#A79E88; --accent:#8098F7; --accent-soft:#232A47;
+      --soul:#8098F7; --soul-soft:#232A47;
+      --groove:#D6A25C; --groove-soft:#33281A;
+      --alert:#D98077; --ok:#6FBF8F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#17150F; --surface:#211E16; --sunk:#1B1912; --line:#3A3427;
+    --ink:#F2EDE2; --muted:#A79E88; --accent:#8098F7; --accent-soft:#232A47;
+    --soul:#8098F7; --soul-soft:#232A47; --groove:#D6A25C; --groove-soft:#33281A;
+    --alert:#D98077; --ok:#6FBF8F;
+  }
+  :root[data-theme="light"]{
+    --ground:#F5F0E8; --surface:#EDE8DC; --sunk:#E3DDCE; --line:#D9D3C7;
+    --ink:#0D0B08; --muted:#6B6455; --accent:#1A3FD4; --accent-soft:#E8EDFF;
+    --soul:#1A3FD4; --soul-soft:#E8EDFF; --groove:#8A5A1E; --groove-soft:#F4E9D8;
+    --alert:#B0554E; --ok:#2E7D4F;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);
+    font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:920px;margin:0 auto;padding:22px 16px 90px}
+
+  h1{font-size:24px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em;text-wrap:balance}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 26px;max-width:66ch}
+  h2{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:34px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+
+  /* the two feet, shown as what they are: a pair */
+  .foot{display:inline-flex;align-items:baseline;gap:5px;font-size:12px;font-weight:700;
+    padding:3px 9px;border-radius:20px;background:var(--sunk);border:1px solid var(--line);
+    white-space:nowrap}
+  .foot i{font-style:normal;font-size:9px;font-weight:800;letter-spacing:.08em;
+    color:var(--muted);text-transform:uppercase}
+  .foot.is-soul{background:var(--soul-soft);border-color:var(--soul);color:var(--soul)}
+  .foot.is-soul i{color:var(--soul);opacity:.7}
+
+  .findings{display:grid;gap:10px}
+  .find{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);
+    border-radius:10px;padding:13px 15px}
+  .find.yes{border-left-color:var(--ok)} .find.no{border-left-color:var(--alert)}
+  .find.huh{border-left-color:var(--accent)}
+  /* direct child only - the card title. Inline <b> inside the body text must
+     stay inline, or emphasised phrases break onto their own line. */
+  .find > b{display:block;font-size:13.5px;margin-bottom:3px}
+  .find p{margin:0;font-size:13.5px;color:var(--muted)}
+  .verdict{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+    float:right;margin-left:12px}
+  .yes .verdict{color:var(--ok)} .no .verdict{color:var(--alert)} .huh .verdict{color:var(--accent)}
+
+  /* explorer */
+  .picker{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+  .chip{font:inherit;font-size:12px;font-weight:700;padding:6px 11px;border-radius:8px;
+    border:1.5px solid var(--line);background:var(--ground);color:var(--ink);cursor:pointer}
+  .chip.s{border-color:color-mix(in srgb,var(--soul) 45%,transparent)}
+  .chip.g{border-color:color-mix(in srgb,var(--groove) 45%,transparent)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ground)}
+  .chip:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+
+  .detail{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:17px}
+  .detail h3{margin:0 0 3px;font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .stance{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
+  .nbr{margin-top:16px}
+  .nbr h4{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 7px}
+  .nbr ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+  .nbr li{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:13px;
+    padding:7px 10px;background:var(--ground);border:1px solid var(--line);border-radius:9px}
+  .nbr li b{font-weight:800}
+  .nbr .swap{color:var(--muted);font-size:11.5px}
+  .fam{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    padding:1px 6px;border-radius:5px}
+  .fam.s{background:var(--soul-soft);color:var(--soul)}
+  .fam.g{background:var(--groove-soft);color:var(--groove)}
+  .none{color:var(--muted);font-size:13px;font-style:italic}
+
+  /* plate hubs */
+  .hubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:11px}
+  .hub{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .hub .nm{font-family:var(--glyph);font-size:17px;font-weight:700;margin-bottom:2px}
+  .hub .ct{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:8px}
+  .hub .lst{font-size:12.5px;color:var(--muted);line-height:1.55}
+  .hub.rot{border-color:var(--groove)}
+  .hub .pair{font-size:10.5px;font-weight:700;color:var(--groove);margin-top:7px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  tbody tr:last-child td{border-bottom:0}
+  .note{font-size:13px;color:var(--muted);margin-top:12px;max-width:66ch}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <h1>Every trick is two feet</h1>
+  <p class="sub">Pulled from the <code>BASE</code> table in the engine, where each trick is stored
+    as a <b>front foot plate</b> and a <b>back foot plate</b>. That makes "what do these two tricks
+    share" an exact question, not a judgement call &mdash; and the answers settle all three of
+    your hunches, one of them against you.</p>
+
+  <h2>Your three claims, checked</h2>
+  <div class="findings" id="findings"></div>
+
+  <h2>Pick a trick &mdash; see everything one foot away</h2>
+  <div class="picker" id="picker"></div>
+  <div class="detail" id="detail"></div>
+
+  <h2>The 13 plates, and who uses them</h2>
+  <p class="note" style="margin:0 0 12px">Four plates come in frontside/backside pairs &mdash;
+    those are the rotation axis you spotted. The rest have no BS counterpart, because they
+    aren't rotational positions at all.</p>
+  <div class="hubs" id="hubs"></div>
+
+  <h2>The soul/groove border is not a wall</h2>
+  <p class="note" style="margin:0 0 12px">Twelve links cross it. Every one is a trick where you
+    keep one foot exactly where it is and move only the other.</p>
+  <div class="scroll"><table id="bridges">
+    <thead><tr><th>Soul trick</th><th>Groove trick</th><th>Foot that stays</th><th>Foot that moves</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</div>
+
+<script>
+const D=[["soul","Soul","soul","Fastslide","Makio","trail",null,null],["acid","Acid","soul","BS Backslide","Makio","trail",null,null],["torquesoul","Torque Soul","soul","Torque","Makio","trail",null,null],["mizu","Mizu","soul","Makio","BS Pudslide","lead",null,null],["pornstar","Pornstar","soul","Makio","Torque","lead",null,null],["mistrial","Mistrial","soul","Makio","BS Backslide","lead",null,null],["makio","Makio","soul",null,"Makio","trail",null,null],["xgrind","X-Grind","soul","Fishbrain","Makio","trail",null,null],["teakettle","Tea Kettle","soul","Rough Makio","Torque","lead",null,null],["hotdog","Hot Dog","soul","Negative Makio","Negative Makio","both",null,null],["stubsoul","Stub Soul","soul","Negative Makio","Makio","trail",null,null],["frontside","Frontside","groove","Fastslide","Pudslide",null,"BS Fastslide","BS Pudslide"],["farv","Full Torque","groove","Torque","Pudslide",null,"BS Torque","BS Pudslide"],["royale","Royale","groove","Fastslide","Backslide",null,"BS Fastslide","BS Backslide"],["cabdriver","Cabdriver","groove","Torque","Backslide",null,"BS Torque","BS Backslide"],["unity","Unity","groove","Backslide","Torque",null,"BS Backslide","BS Torque"],["pudslide","Pudslide","groove",null,"Pudslide",null,null,"BS Pudslide"],["fastslide","Fastslide","groove","Fastslide",null,null,"BS Fastslide",null],["torque_g","Torque","groove","Torque",null,null,"BS Torque",null],["backslide","Backslide","groove",null,"Backslide",null,null,"BS Backslide"],["tabernacle","Tabernacle","groove","Backslide","BS Pudslide",null,"BS Backslide","Pudslide"],["bynsoul","Byn Soul","groove","Fastslide","BS Torque",null,"BS Backslide","Pudslide"],["ufo","UFO","groove","Fastslide","Pudslide",null,"BS Fastslide","BS Pudslide"],["darkslide","Darkslide","groove","BS Backslide","Backslide",null,"Backslide","BS Backslide"],["wheelbarrow","Wheelbarrow","groove","Heel Roll","Backslide",null,"Heel Roll","BS Backslide"],["ninebar","Nine Bar","groove","AO Toe Roll","Backslide",null,"AO Toe Roll","BS Backslide"]];
+
+const TR = D.map(r => ({id:r[0], name:r[1], fam:r[2], lead:r[3], trail:r[4], soulFoot:r[5],
+                        bsLead:r[6], bsTrail:r[7]}));
+const BY = Object.fromEntries(TR.map(t => [t.id, t]));
+const el = (t, cls, txt) => { const e = document.createElement(t);
+  if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+/* a plate is "the soul plate" for a trick when soulFoot names that foot */
+function isSoulPlate(t, which){
+  return t.soulFoot === 'both' || t.soulFoot === which;
+}
+function footChip(t, which){
+  const plate = which === 'lead' ? t.lead : t.trail;
+  if (!plate) return null;
+  const c = el('span', 'foot' + (isSoulPlate(t, which) ? ' is-soul' : ''));
+  c.append(el('i', null, which === 'lead' ? 'front' : 'back'), document.createTextNode(plate));
+  return c;
+}
+
+/* one-foot-change: same plate on one foot, anything on the other */
+function neighbours(t){
+  const out = {lead:[], trail:[]};
+  TR.forEach(o => {
+    if (o.id === t.id) return;
+    if (t.lead && t.lead === o.lead)
+      out.lead.push({o, from:t.trail, to:o.trail, same:t.trail === o.trail});
+    if (t.trail && t.trail === o.trail)
+      out.trail.push({o, from:t.lead, to:o.lead, same:t.lead === o.lead});
+  });
+  return out;
+}
+
+/* ---- findings ---- */
+const soulish = /Makio|Fishbrain/;
+const allSoulHaveMakio = TR.filter(t => t.fam === 'soul')
+  .every(t => [t.lead, t.trail].filter(Boolean).some(p => soulish.test(p)));
+const soulFS = [BY.soul.lead, BY.soul.trail].filter(p => p && [BY.frontside.lead, BY.frontside.trail].includes(p));
+const chain = [['frontside','royale'],['royale','backslide'],['backslide','torque_g'],['torque_g','farv']];
+const chainRes = chain.map(([a,b]) => {
+  const A = BY[a], B = BY[b];
+  const sh = [A.lead, A.trail].filter(p => p && [B.lead, B.trail].includes(p));
+  return {a:A.name, b:B.name, sh};
+});
+const broken = chainRes.filter(r => !r.sh.length);
+
+const findings = [
+  {k:'yes', v:'Confirmed', t:'Every soul trick carries a Makio plate',
+   d:'All 11 of them, without exception \u2014 Makio, or a Makio variant (Negative, Rough, or Fishbrain, which is just topside Makio). The engine even records which foot it is on, in <code>soulFoot</code>. That is not a loose family resemblance; it is the definition of the family.'},
+  {k:'no', v:'Not so', t:'A Soul and a Frontside share nothing',
+   d:'They share the <b>front foot exactly</b>. Soul is Fastslide + Makio; Frontside is Fastslide + Pudslide. Same front foot, different back foot \u2014 so going from one to the other is a single-foot change, and it is not a one-off: <b>12 links cross the soul/groove border</b> the same way.'},
+  {k:'huh', v:'Half right', t:'Frontside \u2192 Royale \u2192 Backslide \u2192 Torque \u2192 Full Torque all share a root',
+   d:'Three of the four steps hold: Frontside\u2192Royale shares Fastslide, Royale\u2192Backslide shares Backslide, Torque\u2192Full Torque shares Torque. But <b>Backslide\u2192Torque shares nothing at all</b> \u2014 Backslide is a back-foot-only plate and Torque is a front-foot-only one, so there is no common foot. The chain is real, but it is not a line; it is a loop with a gap in it.'},
+  {k:'yes', v:'One web', t:'It is all a single connected family',
+   d:'Follow shared plates and every one of the 26 base tricks reaches every other. There are no islands \u2014 no separate soul continent and groove continent. Four plates do the bridging: Fastslide, Torque, BS Backslide and BS Pudslide.'},
+];
+const fw = document.getElementById('findings');
+findings.forEach(f => {
+  const d = el('div', 'find ' + f.k);
+  const v = el('span', 'verdict', f.v);
+  const b = el('b', null, f.t);
+  const p = el('p'); p.innerHTML = f.d;
+  d.append(v, b, p); fw.append(d);
+});
+
+/* ---- explorer ---- */
+let sel = 'soul';
+const picker = document.getElementById('picker');
+TR.forEach(t => {
+  const b = el('button', 'chip ' + (t.fam === 'soul' ? 's' : 'g'), t.name);
+  b.onclick = () => { sel = t.id; render(); };
+  b.dataset.id = t.id;
+  picker.append(b);
+});
+
+function render(){
+  [...picker.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.id === sel ? 'true' : 'false'));
+  const t = BY[sel], host = document.getElementById('detail');
+  host.textContent = '';
+  host.append(el('h3', null, t.name));
+  const fam = el('span', 'fam ' + (t.fam === 'soul' ? 's' : 'g'), t.fam);
+  host.append(fam);
+
+  const st = el('div', 'stance');
+  const lf = footChip(t, 'lead'), tf = footChip(t, 'trail');
+  if (lf) st.append(lf);
+  if (tf) st.append(tf);
+  if (!lf) st.append(el('span', 'none', 'front foot not on the rail'));
+  if (!tf) st.append(el('span', 'none', 'back foot not on the rail'));
+  host.append(st);
+
+  if (t.soulFoot) host.append(el('p', 'note',
+    'Soul plate on the ' + (t.soulFoot === 'both' ? 'both feet' :
+      t.soulFoot === 'lead' ? 'front foot' : 'back foot') + '.'));
+
+  const n = neighbours(t);
+  [['lead','Keep the front foot, move the back'],
+   ['trail','Keep the back foot, move the front']].forEach(([k, label]) => {
+    const list = n[k];
+    if (!list.length) return;
+    const box = el('div', 'nbr');
+    box.append(el('h4', null, label + '  \u00b7  ' + list.length));
+    const ul = el('ul');
+    list.sort((a,b) => a.o.name.localeCompare(b.o.name)).forEach(x => {
+      const li = el('li');
+      li.append(el('b', null, x.o.name));
+      li.append(el('span', 'fam ' + (x.o.fam === 'soul' ? 's' : 'g'), x.o.fam));
+      li.append(el('span', 'swap', x.same ? 'identical plates'
+        : (x.from || 'off rail') + '  \u2192  ' + (x.to || 'off rail')));
+      ul.append(li);
+    });
+    box.append(ul); host.append(box);
+  });
+}
+
+/* ---- plate hubs ---- */
+const plates = {};
+TR.forEach(t => {
+  if (t.lead)  (plates[t.lead]  = plates[t.lead]  || []).push(t.name + ' (front)');
+  if (t.trail) (plates[t.trail] = plates[t.trail] || []).push(t.name + ' (back)');
+});
+const hubs = document.getElementById('hubs');
+Object.keys(plates).sort((a,b) => plates[b].length - plates[a].length || a.localeCompare(b))
+  .forEach(p => {
+    const has = plates['BS ' + p] !== undefined || (p.startsWith('BS ') && plates[p.slice(3)] !== undefined);
+    const h = el('div', 'hub' + (has ? ' rot' : ''));
+    h.append(el('div', 'nm', p));
+    h.append(el('div', 'ct', plates[p].length + (plates[p].length === 1 ? ' trick' : ' tricks')));
+    h.append(el('div', 'lst', plates[p].join(', ')));
+    if (has) h.append(el('div', 'pair', p.startsWith('BS ') ? 'rotation pair of ' + p.slice(3)
+                                                            : 'rotation pair with BS ' + p));
+    hubs.append(h);
+  });
+
+/* ---- cross-family bridges ---- */
+const tb = document.querySelector('#bridges tbody');
+const rows = [];
+TR.filter(t => t.fam === 'soul').forEach(s => {
+  TR.filter(t => t.fam === 'groove').forEach(g => {
+    if (s.lead && s.lead === g.lead)
+      rows.push([s.name, g.name, 'front: ' + s.lead, (s.trail || 'off rail') + ' \u2192 ' + (g.trail || 'off rail')]);
+    if (s.trail && s.trail === g.trail)
+      rows.push([s.name, g.name, 'back: ' + s.trail, (s.lead || 'off rail') + ' \u2192 ' + (g.lead || 'off rail')]);
+  });
+});
+rows.forEach(r => {
+  const tr = el('tr');
+  r.forEach((c, i) => { const td = el('td', null, c); if (i < 2) td.style.fontWeight = '700'; tr.append(td); });
+  tb.append(tr);
+});
+
+render();
+</script>
